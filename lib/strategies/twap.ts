@@ -1,4 +1,4 @@
-import { LimitOrder, MakerTraits, Address, Sdk, randBigInt, FetchProviderConnector } from "@1inch/limit-order-sdk";
+import { LimitOrder, MakerTraits, Address, randBigInt, Api } from "@1inch/limit-order-sdk";
 import { ethers } from "ethers";
 import type { TWAPOrder, Token, TradingStrategy } from '../types';
 import { ONEINCH_API_KEY } from '../constants';
@@ -14,15 +14,14 @@ export interface TWAPConfig {
 }
 
 export class TWAPStrategy {
-  private sdk: Sdk;
+  private api: Api;
   private signer: ethers.Wallet;
 
   constructor(signer: ethers.Wallet, networkId: number = 1) {
     this.signer = signer;
-    this.sdk = new Sdk({
+    this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
-      httpConnector: new FetchProviderConnector(),
     });
   }
 
@@ -108,16 +107,15 @@ export class TWAPStrategy {
       const baseRate = currentPrice * (1 - params.slippageTolerance / 100);
       const takingAmount = makingAmount * BigInt(Math.floor(baseRate * 1e18)) / BigInt(1e18);
 
-      const order = await this.sdk.createOrder(
-        {
-          makerAsset: new Address(params.fromToken.address),
-          takerAsset: new Address(params.toToken.address),
-          makingAmount,
-          takingAmount,
-          maker: new Address(params.maker),
-        },
-        makerTraits
-      );
+      // Create limit order using the SDK
+      const order = new LimitOrder({
+        makerAsset: new Address(params.fromToken.address),
+        takerAsset: new Address(params.toToken.address),
+        makingAmount,
+        takingAmount,
+        maker: new Address(params.maker),
+        makerTraits,
+      });
 
       // Update strategy parameters
       params.executedOrders += 1;
@@ -158,9 +156,9 @@ export class TWAPStrategy {
   }
 
   /**
-   * Submit a signed TWAP order to the 1inch limit order protocol
+   * Submit a signed TWAP order to our custom orderbook
    */
-  async submitTWAPOrder(order: any): Promise<void> {
+  async submitTWAPOrder(order: LimitOrder): Promise<void> {
     const typedData = order.getTypedData();
     const signature = await this.signer.signTypedData(
       typedData.domain,
@@ -176,7 +174,7 @@ export class TWAPStrategy {
   /**
    * Submit to custom orderbook (not official 1inch API)
    */
-  private async submitToCustomOrderbook(order: any, signature: string): Promise<void> {
+  private async submitToCustomOrderbook(order: LimitOrder, signature: string): Promise<void> {
     // Custom implementation - could be a local database, IPFS, or custom API
     console.log('Submitting to custom orderbook:', {
       order: order,
@@ -184,13 +182,21 @@ export class TWAPStrategy {
     });
     
     // Store in local storage or custom backend for demo purposes
-    const customOrders = JSON.parse(localStorage.getItem('custom_twap_orders') || '[]');
-    customOrders.push({
-      order: order.build(),
-      signature,
-      timestamp: Date.now()
-    });
-    localStorage.setItem('custom_twap_orders', JSON.stringify(customOrders));
+    if (typeof window !== 'undefined') {
+      const customOrders = JSON.parse(localStorage.getItem('custom_twap_orders') || '[]');
+      customOrders.push({
+        order: {
+          makerAsset: order.makerAsset.toString(),
+          takerAsset: order.takerAsset.toString(),
+          makingAmount: order.makingAmount.toString(),
+          takingAmount: order.takingAmount.toString(),
+          maker: order.maker.toString(),
+        },
+        signature,
+        timestamp: Date.now()
+      });
+      localStorage.setItem('custom_twap_orders', JSON.stringify(customOrders));
+    }
   }
 
   /**

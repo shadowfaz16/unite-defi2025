@@ -1,4 +1,4 @@
-import { LimitOrder, MakerTraits, Address, Sdk, randBigInt, FetchProviderConnector } from "@1inch/limit-order-sdk";
+import { LimitOrder, MakerTraits, Address, randBigInt, Api } from "@1inch/limit-order-sdk";
 import { ethers } from "ethers";
 import type { DCAOrder, Token, TradingStrategy } from '../types';
 import { ONEINCH_API_KEY } from '../constants';
@@ -14,15 +14,14 @@ export interface DCAConfig {
 }
 
 export class DCAStrategy {
-  private sdk: Sdk;
+  private api: Api;
   private signer: ethers.Wallet;
 
   constructor(signer: ethers.Wallet, networkId: number = 1) {
     this.signer = signer;
-    this.sdk = new Sdk({
+    this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
-      httpConnector: new FetchProviderConnector(),
     });
   }
 
@@ -105,16 +104,15 @@ export class DCAStrategy {
         .withExpiration(expiration)
         .withNonce(randBigInt(UINT_40_MAX));
 
-      const order = await this.sdk.createOrder(
-        {
-          makerAsset: new Address(params.fromToken.address),
-          takerAsset: new Address(params.toToken.address),
-          makingAmount,
-          takingAmount,
-          maker: new Address(params.maker),
-        },
-        makerTraits
-      );
+      // Create limit order using the SDK
+      const order = new LimitOrder({
+        makerAsset: new Address(params.fromToken.address),
+        takerAsset: new Address(params.toToken.address),
+        makingAmount,
+        takingAmount,
+        maker: new Address(params.maker),
+        makerTraits,
+      });
 
       // Update strategy parameters
       params.executedOrders += 1;
@@ -220,7 +218,7 @@ export class DCAStrategy {
   /**
    * Submit to custom orderbook
    */
-  private async submitToCustomOrderbook(order: any, dcaOrder: DCAOrder): Promise<void> {
+  private async submitToCustomOrderbook(order: LimitOrder, dcaOrder: DCAOrder): Promise<void> {
     const typedData = order.getTypedData();
     const signature = await this.signer.signTypedData(
       typedData.domain,
@@ -229,14 +227,22 @@ export class DCAStrategy {
     );
 
     // Store in custom orderbook
-    const customOrders = JSON.parse(localStorage.getItem('custom_dca_orders') || '[]');
-    customOrders.push({
-      order: order.build(),
-      signature,
-      dcaOrder,
-      timestamp: Date.now()
-    });
-    localStorage.setItem('custom_dca_orders', JSON.stringify(customOrders));
+    if (typeof window !== 'undefined') {
+      const customOrders = JSON.parse(localStorage.getItem('custom_dca_orders') || '[]');
+      customOrders.push({
+        order: {
+          makerAsset: order.makerAsset.toString(),
+          takerAsset: order.takerAsset.toString(),
+          makingAmount: order.makingAmount.toString(),
+          takingAmount: order.takingAmount.toString(),
+          maker: order.maker.toString(),
+        },
+        signature,
+        dcaOrder,
+        timestamp: Date.now()
+      });
+      localStorage.setItem('custom_dca_orders', JSON.stringify(customOrders));
+    }
   }
 
   /**

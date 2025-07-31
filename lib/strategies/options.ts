@@ -1,4 +1,4 @@
-import { LimitOrder, MakerTraits, Address, Sdk, randBigInt, FetchProviderConnector } from "@1inch/limit-order-sdk";
+import { LimitOrder, MakerTraits, Address, randBigInt, Api } from "@1inch/limit-order-sdk";
 import { ethers } from "ethers";
 import type { Token, TradingStrategy, LimitOrder as CustomLimitOrder } from '../types';
 import { ONEINCH_API_KEY } from '../constants';
@@ -29,15 +29,14 @@ export interface SyntheticOption {
 }
 
 export class OptionsStrategy {
-  private sdk: Sdk;
+  private api: Api;
   private signer: ethers.Wallet;
 
   constructor(signer: ethers.Wallet, networkId: number = 1) {
     this.signer = signer;
-    this.sdk = new Sdk({
+    this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
-      httpConnector: new FetchProviderConnector(),
     });
   }
 
@@ -127,16 +126,15 @@ export class OptionsStrategy {
     const makingAmount = BigInt(params.strikePrice) * BigInt(params.optionSize) / BigInt(10 ** params.underlyingToken.decimals);
     const takingAmount = BigInt(params.optionSize);
 
-    const order = await this.sdk.createOrder(
-      {
-        makerAsset: new Address(params.strikeToken.address), // Pay with strike token (e.g., USDC)
-        takerAsset: new Address(params.underlyingToken.address), // Get underlying token
-        makingAmount,
-        takingAmount,
-        maker: new Address(params.maker),
-      },
-      makerTraits
-    );
+    // Create limit order using the SDK
+    const order = new LimitOrder({
+      makerAsset: new Address(params.strikeToken.address), // Pay with strike token (e.g., USDC)
+      takerAsset: new Address(params.underlyingToken.address), // Get underlying token
+      makingAmount,
+      takingAmount,
+      maker: new Address(params.maker),
+      makerTraits,
+    });
 
     const limitOrder: CustomLimitOrder = {
       id: `call_order_${strategy.id}`,
@@ -175,16 +173,15 @@ export class OptionsStrategy {
     const makingAmount = BigInt(params.optionSize);
     const takingAmount = BigInt(params.strikePrice) * BigInt(params.optionSize) / BigInt(10 ** params.underlyingToken.decimals);
 
-    const order = await this.sdk.createOrder(
-      {
-        makerAsset: new Address(params.underlyingToken.address), // Give underlying token
-        takerAsset: new Address(params.strikeToken.address), // Get strike token (e.g., USDC)
-        makingAmount,
-        takingAmount,
-        maker: new Address(params.maker),
-      },
-      makerTraits
-    );
+    // Create limit order using the SDK
+    const order = new LimitOrder({
+      makerAsset: new Address(params.underlyingToken.address), // Give underlying token
+      takerAsset: new Address(params.strikeToken.address), // Get strike token (e.g., USDC)
+      makingAmount,
+      takingAmount,
+      maker: new Address(params.maker),
+      makerTraits,
+    });
 
     const limitOrder: CustomLimitOrder = {
       id: `put_order_${strategy.id}`,
@@ -360,7 +357,7 @@ export class OptionsStrategy {
   /**
    * Submit to custom orderbook
    */
-  private async submitToCustomOrderbook(order: any, limitOrder: CustomLimitOrder, optionType: string): Promise<void> {
+  private async submitToCustomOrderbook(order: LimitOrder, limitOrder: CustomLimitOrder, optionType: string): Promise<void> {
     const typedData = order.getTypedData();
     const signature = await this.signer.signTypedData(
       typedData.domain,
@@ -368,15 +365,23 @@ export class OptionsStrategy {
       typedData.message
     );
 
-    const customOrders = JSON.parse(localStorage.getItem('custom_options_orders') || '[]');
-    customOrders.push({
-      order: order.build(),
-      signature,
-      limitOrder,
-      optionType,
-      timestamp: Date.now()
-    });
-    localStorage.setItem('custom_options_orders', JSON.stringify(customOrders));
+    if (typeof window !== 'undefined') {
+      const customOrders = JSON.parse(localStorage.getItem('custom_options_orders') || '[]');
+      customOrders.push({
+        order: {
+          makerAsset: order.makerAsset.toString(),
+          takerAsset: order.takerAsset.toString(),
+          makingAmount: order.makingAmount.toString(),
+          takingAmount: order.takingAmount.toString(),
+          maker: order.maker.toString(),
+        },
+        signature,
+        limitOrder,
+        optionType,
+        timestamp: Date.now()
+      });
+      localStorage.setItem('custom_options_orders', JSON.stringify(customOrders));
+    }
   }
 
   /**

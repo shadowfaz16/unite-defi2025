@@ -1,4 +1,4 @@
-import { LimitOrder, MakerTraits, Address, Sdk, randBigInt, FetchProviderConnector } from "@1inch/limit-order-sdk";
+import { LimitOrder, MakerTraits, Address, randBigInt, Api } from "@1inch/limit-order-sdk";
 import { ethers } from "ethers";
 import type { Token, TradingStrategy, LimitOrder as CustomLimitOrder } from '../types';
 import { ONEINCH_API_KEY } from '../constants';
@@ -30,15 +30,14 @@ export interface LiquidityPosition {
 }
 
 export class ConcentratedLiquidityStrategy {
-  private sdk: Sdk;
+  private api: Api;
   private signer: ethers.Wallet;
 
   constructor(signer: ethers.Wallet, networkId: number = 1) {
     this.signer = signer;
-    this.sdk = new Sdk({
+    this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
-      httpConnector: new FetchProviderConnector(),
     });
   }
 
@@ -139,16 +138,15 @@ export class ConcentratedLiquidityStrategy {
       const makingAmount = liquidity; // Amount of tokenB to pay
       const takingAmount = BigInt(Math.floor(Number(liquidity) / price)); // Amount of tokenA to get
 
-      const order = await this.sdk.createOrder(
-        {
-          makerAsset: new Address(params.tokenB.address),
-          takerAsset: new Address(params.tokenA.address),
-          makingAmount,
-          takingAmount,
-          maker: new Address(params.maker),
-        },
-        makerTraits
-      );
+      // Create limit order using the SDK
+      const order = new LimitOrder({
+        makerAsset: new Address(params.tokenB.address),
+        takerAsset: new Address(params.tokenA.address),
+        makingAmount,
+        takingAmount,
+        maker: new Address(params.maker),
+        makerTraits,
+      });
 
       const limitOrder: CustomLimitOrder = {
         id: `cl_buy_${strategy.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -194,16 +192,15 @@ export class ConcentratedLiquidityStrategy {
       const makingAmount = BigInt(Math.floor(Number(liquidity) / price)); // Amount of tokenA to pay
       const takingAmount = liquidity; // Amount of tokenB to get
 
-      const order = await this.sdk.createOrder(
-        {
-          makerAsset: new Address(params.tokenA.address),
-          takerAsset: new Address(params.tokenB.address),
-          makingAmount,
-          takingAmount,
-          maker: new Address(params.maker),
-        },
-        makerTraits
-      );
+      // Create limit order using the SDK
+      const order = new LimitOrder({
+        makerAsset: new Address(params.tokenA.address),
+        takerAsset: new Address(params.tokenB.address),
+        makingAmount,
+        takingAmount,
+        maker: new Address(params.maker),
+        makerTraits,
+      });
 
       const limitOrder: CustomLimitOrder = {
         id: `cl_sell_${strategy.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -433,7 +430,7 @@ export class ConcentratedLiquidityStrategy {
    * Submit to custom orderbook
    */
   private async submitToCustomOrderbook(
-    order: any,
+    order: LimitOrder,
     limitOrder: CustomLimitOrder,
     orderType: string,
     price: number
@@ -445,16 +442,24 @@ export class ConcentratedLiquidityStrategy {
       typedData.message
     );
 
-    const customOrders = JSON.parse(localStorage.getItem('custom_cl_orders') || '[]');
-    customOrders.push({
-      order: order.build(),
-      signature,
-      limitOrder,
-      orderType,
-      price,
-      timestamp: Date.now()
-    });
-    localStorage.setItem('custom_cl_orders', JSON.stringify(customOrders));
+    if (typeof window !== 'undefined') {
+      const customOrders = JSON.parse(localStorage.getItem('custom_cl_orders') || '[]');
+      customOrders.push({
+        order: {
+          makerAsset: order.makerAsset.toString(),
+          takerAsset: order.takerAsset.toString(),
+          makingAmount: order.makingAmount.toString(),
+          takingAmount: order.takingAmount.toString(),
+          maker: order.maker.toString(),
+        },
+        signature,
+        limitOrder,
+        orderType,
+        price,
+        timestamp: Date.now()
+      });
+      localStorage.setItem('custom_cl_orders', JSON.stringify(customOrders));
+    }
   }
 
   /**

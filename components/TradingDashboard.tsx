@@ -8,13 +8,17 @@ import { PortfolioOverview } from './PortfolioOverview';
 import { StrategyPanel } from './StrategyPanel';
 import { OrderBook } from './OrderBook';
 import { PriceChart } from './PriceChart';
+import { DemoShowcase } from './DemoShowcase';
+import { LandingPage } from './LandingPage';
 import { useWeb3 } from '../lib/hooks/useWeb3';
 
 export function TradingDashboard() {
-  const [activeTab, setActiveTab] = useState<'strategies' | 'orders' | 'portfolio' | 'analytics'>('strategies');
+  const [activeTab, setActiveTab] = useState<'home' | 'strategies' | 'orders' | 'portfolio' | 'analytics' | 'demo'>('home');
   const { isConnected } = useWeb3();
 
   const tabs = [
+    { id: 'home', label: 'Home', icon: '🏠' },
+    { id: 'demo', label: 'Demo Showcase', icon: '🎬' },
     { id: 'strategies', label: 'Advanced Strategies', icon: '🎯' },
     { id: 'orders', label: 'Order Management', icon: '📊' },
     { id: 'portfolio', label: 'Portfolio', icon: '💼' },
@@ -22,7 +26,7 @@ export function TradingDashboard() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="bg-gradient-to-br dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -42,8 +46,10 @@ export function TradingDashboard() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {!isConnected ? (
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'home' ? (
+          <LandingPage />
+        ) : !isConnected ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
             <div className="text-center">
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -108,6 +114,10 @@ export function TradingDashboard() {
 
             {/* Content Areas */}
             <div className="space-y-8">
+              {activeTab === 'demo' && (
+                <DemoShowcase />
+              )}
+
               {activeTab === 'strategies' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2">

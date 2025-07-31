@@ -1,0 +1,19 @@
+'use client';
+
+import { HeroSection } from './HeroSection';
+import { FeaturesSection } from './FeaturesSection';
+import { TechnicalSection } from './TechnicalSection';
+import { DemoSection } from './DemoSection';
+import { FooterSection } from './FooterSection';
+
+export function LandingPage() {
+  return (
+    <div className="min-h-screen">
+      <HeroSection />
+      <FeaturesSection />
+      <TechnicalSection />
+      <DemoSection />
+      <FooterSection />
+    </div>
+  );
+}
