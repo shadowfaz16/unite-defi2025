@@ -1,4 +1,4 @@
-import { LimitOrder, MakerTraits, Address, randBigInt, Api } from "@1inch/limit-order-sdk";
+import { LimitOrder, MakerTraits, Address, randBigInt, Api,  } from "@1inch/limit-order-sdk";
 import { ethers } from "ethers";
 import type { TWAPOrder, Token, TradingStrategy } from '../types';
 import { ONEINCH_API_KEY } from '../constants';
@@ -22,7 +22,9 @@ export class TWAPStrategy {
     this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
-      httpConnector: new FetchProviderConnector(),
+      httpConnector: new HttpProviderConnector({
+        baseUrl: 'https://api.1inch.io/v5.0',
+      }),
     });
   }
 

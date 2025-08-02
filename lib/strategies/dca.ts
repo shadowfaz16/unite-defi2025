@@ -22,6 +22,9 @@ export class DCAStrategy {
     this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
+      httpConnector: new HttpConnector({
+        baseUrl: 'https://api.1inch.io/v5.0',
+      }),
     });
   }
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { useWeb3 } from '../lib/hooks/useWeb3';
+import { ChainSwitcher } from './ChainSwitcher';
 
 export function WalletConnection() {
   const { address, isConnected, chain, balance, connect, disconnect, isPending } = useWeb3();
@@ -28,8 +29,10 @@ export function WalletConnection() {
         
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-          <span className="text-sm font-medium">{chain?.name || 'Unknown'}</span>
+          <span className="text-sm font-medium">Connected</span>
         </div>
+        
+        <ChainSwitcher />
         
         <Button 
           variant="outline" 
@@ -101,7 +104,7 @@ export function WalletConnection() {
               </div>
               
               <div className="mt-3 text-xs text-gray-500">
-                Supported networks: Ethereum, Polygon, BSC, Avalanche, Arbitrum
+                Supported networks: Ethereum, Polygon, BSC, Avalanche, Arbitrum, Sepolia
               </div>
             </CardContent>
           </Card>

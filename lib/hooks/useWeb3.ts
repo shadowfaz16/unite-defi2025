@@ -1,11 +1,12 @@
-import { useAccount, useConnect, useDisconnect, useBalance } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useBalance, useSwitchChain } from 'wagmi';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
-import { mainnet, polygon, arbitrum, bsc } from 'wagmi/chains';
+import { mainnet, polygon, arbitrum, bsc, avalanche, sepolia } from 'wagmi/chains';
 
 export function useWeb3() {
   const { address, isConnected, chain, status } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
+  const { switchChain, isPending: isSwitchingChain } = useSwitchChain();
   
   const { data: balance } = useBalance({
     address: address,
@@ -21,7 +22,7 @@ export function useWeb3() {
     connect({ connector: connectorMap[connectorType] });
   };
 
-  const getSupportedChains = () => [mainnet, polygon, arbitrum, bsc];
+  const getSupportedChains = () => [mainnet, polygon, arbitrum, bsc, avalanche, sepolia];
 
   return {
     address,
@@ -30,7 +31,9 @@ export function useWeb3() {
     balance,
     connect: connectWallet,
     disconnect,
+    switchChain,
     isPending,
+    isSwitchingChain,
     connectors,
     supportedChains: getSupportedChains(),
     status

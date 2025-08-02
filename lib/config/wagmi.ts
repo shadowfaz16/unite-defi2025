@@ -1,9 +1,9 @@
 import { http, createConfig, createStorage } from 'wagmi';
-import { mainnet, polygon, arbitrum, bsc, avalanche } from 'wagmi/chains';
+import { mainnet, polygon, arbitrum, bsc, avalanche, sepolia } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 
 export const config = createConfig({
-  chains: [mainnet, polygon, arbitrum, bsc, avalanche],
+  chains: [mainnet, polygon, arbitrum, bsc, avalanche, sepolia],
   connectors: [
     injected(),
     walletConnect({ 
@@ -26,6 +26,7 @@ export const config = createConfig({
     [arbitrum.id]: http(),
     [bsc.id]: http(),
     [avalanche.id]: http(),
+    [sepolia.id]: http(),
   },
   // Enable localStorage persistence to maintain wallet connection across page refreshes
   storage: createStorage({
