@@ -5,7 +5,7 @@
  * This version uses .mjs extension and better import handling
  */
 
-import { createLimitOrderWorking, testLimitOrderWorking } from './lib/limitOrderWorking.mjs';
+import { createLimitOrderWorking, testLimitOrderWorking } from './lib/limitOrderWorking.js';
 
 async function runWorkingTests() {
   console.log('🧪 1inch Limit Order Testing Suite - Working Version');

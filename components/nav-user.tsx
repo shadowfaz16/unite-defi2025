@@ -10,6 +10,8 @@ import {
   Wallet,
   Copy,
   ExternalLink,
+  Settings,
+  ChevronRight,
 } from "lucide-react"
 
 import {
@@ -40,8 +42,9 @@ import { Card, CardContent } from "@/components/ui/card"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const { address, isConnected, chain, balance, connect, disconnect, isPending } = useWeb3()
+  const { address, isConnected, chain, balance, connect, disconnect, isPending, switchChain, supportedChains, isSwitchingChain } = useWeb3()
   const [showConnectors, setShowConnectors] = useState(false)
+  const [showNetworkSwitcher, setShowNetworkSwitcher] = useState(false)
   
   // Ensure wallet reconnects on page load if previously connected
   useWalletReconnect()
@@ -50,7 +53,7 @@ export function NavUser() {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
 
-  const formatBalance = (bal: any) => {
+  const formatBalance = (bal: { formatted: string; symbol: string } | null | undefined) => {
     if (!bal) return '0 ETH'
     return `${parseFloat(bal.formatted).toFixed(4)} ${bal.symbol}`
   }
@@ -69,6 +72,30 @@ export function NavUser() {
       }
     }
   }
+
+  const getChainDisplayName = (chainName: string) => {
+    const nameMap: { [key: string]: string } = {
+      'Ethereum': 'Ethereum',
+      'Polygon': 'Polygon',
+      'Arbitrum One': 'Arbitrum',
+      'BNB Smart Chain': 'BSC',
+      'Avalanche': 'Avalanche',
+      'Sepolia': 'Sepolia'
+    };
+    return nameMap[chainName] || chainName;
+  };
+
+  const getChainIcon = (chainName: string) => {
+    const iconMap: { [key: string]: string } = {
+      'Ethereum': '⟠',
+      'Polygon': '🔮',
+      'Arbitrum One': '🔵',
+      'BNB Smart Chain': '🟡',
+      'Avalanche': '🔺',
+      'Sepolia': '🧪'
+    };
+    return iconMap[chainName] || '🔗';
+  };
 
   if (isConnected && address) {
     return (
@@ -108,8 +135,9 @@ export function NavUser() {
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{formatAddress(address)}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {chain?.name || 'Unknown Network'}
+                    <span className="truncate text-xs text-muted-foreground flex items-center gap-1">
+                      <span>{getChainIcon(chain?.name || '')}</span>
+                      {getChainDisplayName(chain?.name || 'Unknown Network')}
                     </span>
                   </div>
                 </div>
@@ -120,9 +148,18 @@ export function NavUser() {
                   <span>Balance</span>
                   <span className="font-medium">{formatBalance(balance)}</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center justify-between">
+                <DropdownMenuItem 
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setShowNetworkSwitcher(!showNetworkSwitcher)}
+                >
                   <span>Network</span>
-                  <span className="font-medium">{chain?.name || 'Unknown'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium flex items-center gap-1">
+                      <span>{getChainIcon(chain?.name || '')}</span>
+                      {getChainDisplayName(chain?.name || 'Unknown')}
+                    </span>
+                    <Settings className="h-3 w-3 text-muted-foreground" />
+                  </div>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
@@ -143,6 +180,56 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Network Switcher Modal */}
+          {showNetworkSwitcher && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowNetworkSwitcher(false)}
+              />
+              <Card className="absolute bottom-full left-0 right-0 mb-2 z-50 shadow-xl border">
+                <CardContent className="p-3">
+                  <h3 className="font-semibold mb-3 text-sm flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Switch Network
+                  </h3>
+                  <div className="space-y-1">
+                    {supportedChains.map((supportedChain) => {
+                      const isCurrentChain = chain?.id === supportedChain.id;
+                      return (
+                        <Button
+                          key={supportedChain.id}
+                          variant={isCurrentChain ? "secondary" : "ghost"}
+                          size="sm"
+                          className="w-full justify-between h-8"
+                          onClick={() => {
+                            if (!isCurrentChain) {
+                              switchChain({ chainId: supportedChain.id });
+                            }
+                            setShowNetworkSwitcher(false);
+                          }}
+                          disabled={isSwitchingChain || isCurrentChain}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span>{getChainIcon(supportedChain.name)}</span>
+                            <span className="text-sm">{getChainDisplayName(supportedChain.name)}</span>
+                          </span>
+                          {isCurrentChain && (
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          )}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="mt-3 pt-2 border-t text-xs text-muted-foreground">
+                    {isSwitchingChain ? 'Switching network...' : 'Select a network to switch to'}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </SidebarMenuItem>
       </SidebarMenu>
     )

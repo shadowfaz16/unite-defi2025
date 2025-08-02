@@ -1,6 +1,6 @@
-import { LimitOrder, MakerTraits, Address, randBigInt, Api,  } from "@1inch/limit-order-sdk";
+import { LimitOrder as SDKLimitOrder, MakerTraits, Address, randBigInt, Api,  } from "@1inch/limit-order-sdk";
 import { ethers } from "ethers";
-import type { TWAPOrder, Token, TradingStrategy } from '../types';
+import type { TWAPOrder, Token, TradingStrategy, LimitOrder } from '../types';
 import { ONEINCH_API_KEY } from '../constants';
 
 export interface TWAPConfig {
@@ -19,12 +19,33 @@ export class TWAPStrategy {
 
   constructor(signer: ethers.Wallet, networkId: number = 1) {
     this.signer = signer;
+    
+    // Create a simple HTTP connector
+    const httpConnector = {
+      async request(config: { url: string; method?: string; data?: unknown; headers?: Record<string, string> }) {
+        const response = await fetch(config.url, {
+          method: config.method || 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ONEINCH_API_KEY}`,
+            ...config.headers,
+          },
+          body: config.data ? JSON.stringify(config.data) : undefined,
+        });
+        return await response.json();
+      },
+      async get(url: string, config: { headers?: Record<string, string> } = {}) {
+        return this.request({ url, method: 'GET', headers: config.headers });
+      },
+      async post(url: string, data: unknown, config: { headers?: Record<string, string> } = {}) {
+        return this.request({ url, method: 'POST', data, headers: config.headers });
+      },
+    };
+    
     this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
-      httpConnector: new HttpProviderConnector({
-        baseUrl: 'https://api.1inch.io/v5.0',
-      }),
+      httpConnector,
     });
   }
 
@@ -93,8 +114,8 @@ export class TWAPStrategy {
       return null;
     }
 
-    const UINT_40_MAX = (1n << 48n) - 1n;
-    const expiresIn = 3600n; // 1 hour expiration
+    const UINT_40_MAX = (BigInt(1) << BigInt(48)) - BigInt(1);
+    const expiresIn = BigInt(3600); // 1 hour expiration
     const expiration = BigInt(Math.floor(Date.now() / 1000)) + expiresIn;
 
     const makerTraits = MakerTraits.default()
@@ -111,14 +132,13 @@ export class TWAPStrategy {
       const takingAmount = makingAmount * BigInt(Math.floor(baseRate * 1e18)) / BigInt(1e18);
 
       // Create limit order using the SDK
-      const order = new LimitOrder({
+      const order = new SDKLimitOrder({
         makerAsset: new Address(params.fromToken.address),
         takerAsset: new Address(params.toToken.address),
         makingAmount,
         takingAmount,
         maker: new Address(params.maker),
-        makerTraits,
-      });
+      }, makerTraits);
 
       // Update strategy parameters
       params.executedOrders += 1;
@@ -161,8 +181,8 @@ export class TWAPStrategy {
   /**
    * Submit a signed TWAP order to our custom orderbook
    */
-  async submitTWAPOrder(order: LimitOrder): Promise<void> {
-    const typedData = order.getTypedData();
+  async submitTWAPOrder(order: SDKLimitOrder): Promise<void> {
+    const typedData = order.getTypedData(1); // Pass networkId
     const signature = await this.signer.signTypedData(
       typedData.domain,
       { Order: typedData.types.Order },
@@ -177,7 +197,7 @@ export class TWAPStrategy {
   /**
    * Submit to custom orderbook (not official 1inch API)
    */
-  private async submitToCustomOrderbook(order: LimitOrder, signature: string): Promise<void> {
+  private async submitToCustomOrderbook(order: SDKLimitOrder, signature: string): Promise<void> {
     // Custom implementation - could be a local database, IPFS, or custom API
     console.log('Submitting to custom orderbook:', {
       order: order,

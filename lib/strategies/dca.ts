@@ -19,12 +19,55 @@ export class DCAStrategy {
 
   constructor(signer: ethers.Wallet, networkId: number = 1) {
     this.signer = signer;
+    
+    // Create custom HTTP connector like in our working solution
+    const httpConnector = {
+      async request(config: any) {
+        try {
+          const response = await fetch(config.url, {
+            method: config.method || 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${ONEINCH_API_KEY}`,
+              'X-API-Key': ONEINCH_API_KEY,
+              ...config.headers,
+            },
+            body: config.data ? JSON.stringify(config.data) : undefined,
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          return await response.json();
+        } catch (error) {
+          console.error("HTTP request failed:", error);
+          throw error;
+        }
+      },
+      
+      async post(url: string, data: any, config: any = {}) {
+        return this.request({
+          url,
+          method: 'POST',
+          data,
+          headers: config.headers
+        });
+      },
+      
+      async get(url: string, config: any = {}) {
+        return this.request({
+          url,
+          method: 'GET', 
+          headers: config.headers
+        });
+      }
+    };
+    
     this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
-      httpConnector: new HttpConnector({
-        baseUrl: 'https://api.1inch.io/v5.0',
-      }),
+      httpConnector,
     });
   }
 
@@ -99,7 +142,7 @@ export class DCAStrategy {
       const baseRate = currentPrice * (1 - params.slippageTolerance / 100);
       const takingAmount = makingAmount * BigInt(Math.floor(baseRate * 1e18)) / BigInt(1e18);
 
-      const UINT_40_MAX = (1n << 48n) - 1n;
+      const UINT_40_MAX = (BigInt(1) << BigInt(40)) - BigInt(1); // Fix to 40-bit and ES compatibility
       const expiresIn = BigInt(params.intervalHours * 3600 + 1800); // Interval + 30 min buffer
       const expiration = BigInt(Math.floor(Date.now() / 1000)) + expiresIn;
 
@@ -107,15 +150,15 @@ export class DCAStrategy {
         .withExpiration(expiration)
         .withNonce(randBigInt(UINT_40_MAX));
 
-      // Create limit order using the SDK
+      // Create limit order using the SDK (fix parameter structure)
       const order = new LimitOrder({
         makerAsset: new Address(params.fromToken.address),
         takerAsset: new Address(params.toToken.address),
         makingAmount,
         takingAmount,
         maker: new Address(params.maker),
-        makerTraits,
-      });
+        // Remove makerTraits from constructor, pass as second parameter
+      }, makerTraits);
 
       // Update strategy parameters
       params.executedOrders += 1;
@@ -222,7 +265,7 @@ export class DCAStrategy {
    * Submit to custom orderbook
    */
   private async submitToCustomOrderbook(order: LimitOrder, dcaOrder: DCAOrder): Promise<void> {
-    const typedData = order.getTypedData();
+    const typedData = order.getTypedData(1); // Pass networkId parameter
     const signature = await this.signer.signTypedData(
       typedData.domain,
       { Order: typedData.types.Order },

@@ -4,10 +4,16 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { useTradingStore } from '../lib/stores/tradingStore';
+import { LimitOrder, TWAPOrder, DCAOrder } from '../lib/types';
+
+// Extended order type with strategy type
+interface CustomOrder extends Partial<LimitOrder & TWAPOrder & DCAOrder> {
+  type: 'TWAP' | 'DCA' | 'OPTIONS' | 'CL';
+}
 
 export function OrderBook() {
   const { orders, strategies } = useTradingStore();
-  const [customOrders, setCustomOrders] = useState<any[]>([]);
+  const [customOrders, setCustomOrders] = useState<CustomOrder[]>([]);
 
   useEffect(() => {
     // Load custom orders from localStorage
@@ -17,11 +23,11 @@ export function OrderBook() {
       const optionsOrders = JSON.parse(localStorage.getItem('custom_options_orders') || '[]');
       const clOrders = JSON.parse(localStorage.getItem('custom_cl_orders') || '[]');
       
-      const allOrders = [
-        ...twapOrders.map((o: any) => ({ ...o, type: 'TWAP' })),
-        ...dcaOrders.map((o: any) => ({ ...o, type: 'DCA' })),
-        ...optionsOrders.map((o: any) => ({ ...o, type: 'OPTIONS' })),
-        ...clOrders.map((o: any) => ({ ...o, type: 'CL' }))
+      const allOrders: CustomOrder[] = [
+        ...twapOrders.map((o: unknown) => ({ ...o as TWAPOrder, type: 'TWAP' as const })),
+        ...dcaOrders.map((o: unknown) => ({ ...o as DCAOrder, type: 'DCA' as const })),
+        ...optionsOrders.map((o: unknown) => ({ ...o as LimitOrder, type: 'OPTIONS' as const })),
+        ...clOrders.map((o: unknown) => ({ ...o as LimitOrder, type: 'CL' as const }))
       ];
       
       setCustomOrders(allOrders);
@@ -164,14 +170,14 @@ export function OrderBook() {
                       </span>
                     </div>
                     <div className="font-mono text-xs">
-                      {order.limitOrder ? 
-                        `${order.limitOrder.makerAsset.symbol}/${order.limitOrder.takerAsset.symbol}` :
+                      {order.makerAsset && order.takerAsset ? 
+                        `${order.makerAsset.symbol || 'Unknown'}/${order.takerAsset.symbol || 'Unknown'}` :
                         'Unknown'
                       }
                     </div>
                     <div className="font-mono text-xs">
-                      {order.limitOrder ? 
-                        parseFloat(order.limitOrder.makingAmount).toExponential(2) :
+                      {order.makingAmount ? 
+                        parseFloat(order.makingAmount).toExponential(2) :
                         'N/A'
                       }
                     </div>
@@ -181,7 +187,7 @@ export function OrderBook() {
                       </span>
                     </div>
                     <div className="text-xs text-gray-500">
-                      {formatTimestamp(order.timestamp)}
+                      {formatTimestamp(order.createdAt || Date.now())}
                     </div>
                   </div>
                 ))}

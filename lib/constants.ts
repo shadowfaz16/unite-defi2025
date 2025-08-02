@@ -33,7 +33,8 @@ export const STRATEGY_TYPES = {
   STOP_LOSS: 'Stop Loss',
   TAKE_PROFIT: 'Take Profit',
   GRID_TRADING: 'Grid Trading',
-  OPTIONS_SYNTHETIC: 'Synthetic Options'
+  OPTIONS_SYNTHETIC: 'Synthetic Options',
+  CONCENTRATED_LIQUIDITY: 'Concentrated Liquidity'
 } as const;
 
 // Order status

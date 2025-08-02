@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ChartData } from '../lib/types';
 
 export function PriceChart() {
   const [timeframe, setTimeframe] = useState<'1H' | '4H' | '1D' | '1W'>('1H');
-  const [priceData, setPriceData] = useState<any[]>([]);
+  const [priceData, setPriceData] = useState<ChartData[]>([]);
 
   useEffect(() => {
     // Generate mock price data

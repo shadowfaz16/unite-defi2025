@@ -7,6 +7,7 @@ import { TWAPCreator } from './strategies/TWAPCreator';
 import { DCACreator } from './strategies/DCACreator';
 import { OptionsCreator } from './strategies/OptionsCreator';
 import { ConcentratedLiquidityCreator } from './strategies/ConcentratedLiquidityCreator';
+import { TestStrategyPanel } from './TestStrategyPanel';
 import { useTradingStore } from '../lib/stores/tradingStore';
 
 export function StrategyPanel() {
@@ -16,6 +17,13 @@ export function StrategyPanel() {
   const activeStrategies = getActiveStrategies();
 
   const strategyTypes = [
+    {
+      id: 'test',
+      name: 'Test Strategy',
+      description: 'Test limit order creation with custom parameters',
+      icon: '🧪',
+      color: 'from-yellow-500 to-yellow-600',
+    },
     {
       id: 'twap',
       name: 'TWAP Orders',
@@ -99,6 +107,7 @@ export function StrategyPanel() {
                 </Button>
               </div>
               
+              {activeCreator === 'test' && <TestStrategyPanel onTestComplete={() => setActiveCreator(null)} />}
               {activeCreator === 'twap' && <TWAPCreator onClose={() => setActiveCreator(null)} />}
               {activeCreator === 'dca' && <DCACreator onClose={() => setActiveCreator(null)} />}
               {activeCreator === 'options' && <OptionsCreator onClose={() => setActiveCreator(null)} />}

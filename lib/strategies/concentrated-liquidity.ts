@@ -35,9 +35,33 @@ export class ConcentratedLiquidityStrategy {
 
   constructor(signer: ethers.Wallet, networkId: number = 1) {
     this.signer = signer;
+    
+    // Create a simple HTTP connector
+    const httpConnector = {
+      async request(config: { url: string; method?: string; data?: unknown; headers?: Record<string, string> }) {
+        const response = await fetch(config.url, {
+          method: config.method || 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ONEINCH_API_KEY}`,
+            ...config.headers,
+          },
+          body: config.data ? JSON.stringify(config.data) : undefined,
+        });
+        return await response.json();
+      },
+      async get(url: string, config: { headers?: Record<string, string> } = {}) {
+        return this.request({ url, method: 'GET', headers: config.headers });
+      },
+      async post(url: string, data: unknown, config: { headers?: Record<string, string> } = {}) {
+        return this.request({ url, method: 'POST', data, headers: config.headers });
+      },
+    };
+    
     this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
+      httpConnector,
     });
   }
 
@@ -126,8 +150,8 @@ export class ConcentratedLiquidityStrategy {
     const params = strategy.parameters;
     
     try {
-      const UINT_40_MAX = (1n << 48n) - 1n;
-      const expiresIn = 86400n; // 24 hours
+      const UINT_40_MAX = (BigInt(1) << BigInt(48)) - BigInt(1);
+      const expiresIn = BigInt(86400); // 24 hours
       const expiration = BigInt(Math.floor(Date.now() / 1000)) + expiresIn;
 
       const makerTraits = MakerTraits.default()
@@ -145,8 +169,7 @@ export class ConcentratedLiquidityStrategy {
         makingAmount,
         takingAmount,
         maker: new Address(params.maker),
-        makerTraits,
-      });
+      }, makerTraits);
 
       const limitOrder: CustomLimitOrder = {
         id: `cl_buy_${strategy.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -180,8 +203,8 @@ export class ConcentratedLiquidityStrategy {
     const params = strategy.parameters;
     
     try {
-      const UINT_40_MAX = (1n << 48n) - 1n;
-      const expiresIn = 86400n; // 24 hours
+      const UINT_40_MAX = (BigInt(1) << BigInt(48)) - BigInt(1);
+      const expiresIn = BigInt(86400); // 24 hours
       const expiration = BigInt(Math.floor(Date.now() / 1000)) + expiresIn;
 
       const makerTraits = MakerTraits.default()
@@ -199,8 +222,7 @@ export class ConcentratedLiquidityStrategy {
         makingAmount,
         takingAmount,
         maker: new Address(params.maker),
-        makerTraits,
-      });
+      }, makerTraits);
 
       const limitOrder: CustomLimitOrder = {
         id: `cl_sell_${strategy.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -435,7 +457,7 @@ export class ConcentratedLiquidityStrategy {
     orderType: string,
     price: number
   ): Promise<void> {
-    const typedData = order.getTypedData();
+    const typedData = order.getTypedData(1); // Default to Ethereum mainnet
     const signature = await this.signer.signTypedData(
       typedData.domain,
       { Order: typedData.types.Order },

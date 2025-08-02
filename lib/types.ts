@@ -37,7 +37,7 @@ export interface LimitOrder {
   makingAmount: string;
   takingAmount: string;
   maker: string;
-  status: keyof typeof import('./constants').ORDER_STATUS;
+  status: (typeof import('./constants').ORDER_STATUS)[keyof typeof import('./constants').ORDER_STATUS];
   createdAt: number;
   expiration?: number;
   strategyId?: string;

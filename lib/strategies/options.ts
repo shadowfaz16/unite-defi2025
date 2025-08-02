@@ -34,9 +34,33 @@ export class OptionsStrategy {
 
   constructor(signer: ethers.Wallet, networkId: number = 1) {
     this.signer = signer;
+    
+    // Create a simple HTTP connector
+    const httpConnector = {
+      async request(config: { url: string; method?: string; data?: unknown; headers?: Record<string, string> }) {
+        const response = await fetch(config.url, {
+          method: config.method || 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ONEINCH_API_KEY}`,
+            ...config.headers,
+          },
+          body: config.data ? JSON.stringify(config.data) : undefined,
+        });
+        return await response.json();
+      },
+      async get(url: string, config: { headers?: Record<string, string> } = {}) {
+        return this.request({ url, method: 'GET', headers: config.headers });
+      },
+      async post(url: string, data: unknown, config: { headers?: Record<string, string> } = {}) {
+        return this.request({ url, method: 'POST', data, headers: config.headers });
+      },
+    };
+    
     this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
+      httpConnector,
     });
   }
 
@@ -113,7 +137,7 @@ export class OptionsStrategy {
   private async createCallOptionOrder(strategy: TradingStrategy): Promise<void> {
     const params = strategy.parameters;
     
-    const UINT_40_MAX = (1n << 48n) - 1n;
+    const UINT_40_MAX = (BigInt(1) << BigInt(48)) - BigInt(1);
     const expiration = BigInt(params.expiration);
 
     const makerTraits = MakerTraits.default()
@@ -133,8 +157,7 @@ export class OptionsStrategy {
       makingAmount,
       takingAmount,
       maker: new Address(params.maker),
-      makerTraits,
-    });
+    }, makerTraits);
 
     const limitOrder: CustomLimitOrder = {
       id: `call_order_${strategy.id}`,
@@ -160,7 +183,7 @@ export class OptionsStrategy {
   private async createPutOptionOrder(strategy: TradingStrategy): Promise<void> {
     const params = strategy.parameters;
     
-    const UINT_40_MAX = (1n << 48n) - 1n;
+    const UINT_40_MAX = (BigInt(1) << BigInt(48)) - BigInt(1);
     const expiration = BigInt(params.expiration);
 
     const makerTraits = MakerTraits.default()
@@ -180,8 +203,7 @@ export class OptionsStrategy {
       makingAmount,
       takingAmount,
       maker: new Address(params.maker),
-      makerTraits,
-    });
+    }, makerTraits);
 
     const limitOrder: CustomLimitOrder = {
       id: `put_order_${strategy.id}`,
@@ -358,7 +380,7 @@ export class OptionsStrategy {
    * Submit to custom orderbook
    */
   private async submitToCustomOrderbook(order: LimitOrder, limitOrder: CustomLimitOrder, optionType: string): Promise<void> {
-    const typedData = order.getTypedData();
+    const typedData = order.getTypedData(1); // Pass networkId
     const signature = await this.signer.signTypedData(
       typedData.domain,
       { Order: typedData.types.Order },

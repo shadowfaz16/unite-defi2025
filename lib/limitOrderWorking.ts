@@ -3,8 +3,40 @@
  * Browser-compatible version for use in Next.js applications
  */
 
+// Types for better TypeScript support
+interface LimitOrderConfig {
+  authKey?: string;
+  privateKey?: string;
+  networkId?: number;
+  expiresInSeconds?: bigint;
+  customTokens?: {
+    makerAsset?: string;
+    takerAsset?: string;
+    makingAmount?: string;
+    takingAmount?: string;
+  } | null;
+}
+
+interface LimitOrderResult {
+  success: boolean;
+  orderHash?: string;
+  signature?: string;
+  maker?: string;
+  makerAsset?: string;
+  takerAsset?: string;
+  makingAmount?: string;
+  takingAmount?: string;
+  expiresAt?: number;
+  logs?: string[];
+  error?: {
+    message: string;
+    stack?: string;
+    response?: unknown;
+  };
+}
+
 // Constants - Fix nonce size to 40 bits
-const UINT_40_MAX = (1n << 40n) - 1n;
+const UINT_40_MAX = (BigInt(1) << BigInt(40)) - BigInt(1);
 
 // Token addresses (Ethereum mainnet)
 const TOKENS = {
@@ -15,12 +47,12 @@ const TOKENS = {
 /**
  * Creates and submits a limit order using 1inch SDK
  */
-export async function createLimitOrderWorking(config = {}) {
+export async function createLimitOrderWorking(config: LimitOrderConfig = {}): Promise<LimitOrderResult> {
   const {
-    authKey = typeof process !== 'undefined' ? (process.env?.NEXT_PUBLIC_1INCH_API_KEY || process.env?.INCH_API_KEY) : null || "demo-key",
+    authKey = typeof process !== 'undefined' ? (process.env?.NEXT_PUBLIC_1INCH_API_KEY || process.env?.INCH_API_KEY || "demo-key") : "demo-key",
     privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
     networkId = 1,
-    expiresInSeconds = 120n,
+    expiresInSeconds = BigInt(120),
     customTokens = null,
   } = config;
 
@@ -52,7 +84,8 @@ export async function createLimitOrderWorking(config = {}) {
       oneInchSDK = await import("@1inch/limit-order-sdk");
       console.log("✅ 1inch SDK loaded via ES modules");
     } catch (esmError) {
-      console.error("❌ Failed to load 1inch SDK:", esmError.message);
+      const errorMessage = esmError instanceof Error ? esmError.message : 'Unknown error';
+      console.error("❌ Failed to load 1inch SDK:", errorMessage);
       throw new Error("Could not load @1inch/limit-order-sdk");
     }
 
@@ -60,17 +93,18 @@ export async function createLimitOrderWorking(config = {}) {
       ethers = await import("ethers");
       console.log("✅ Ethers loaded successfully");
     } catch (ethersError) {
-      console.error("❌ Failed to load ethers:", ethersError.message);
+      const errorMessage = ethersError instanceof Error ? ethersError.message : 'Unknown error';
+      console.error("❌ Failed to load ethers:", errorMessage);
       throw new Error("Could not load ethers");
     }
 
     // Extract required classes - use what's actually available
     console.log("   Available SDK exports:", Object.keys(oneInchSDK));
-    const { MakerTraits, Address, Api, randBigInt, LimitOrder, Extension } = oneInchSDK;
+    const { MakerTraits, Address, Api, randBigInt, LimitOrder } = oneInchSDK;
     
     // Create an HTTP client that matches what the API expects
     const httpConnector = {
-      async request(config) {
+      async request(config: { url: string; method?: string; data?: unknown; headers?: Record<string, string> }) {
         try {
           // Debug the request
           console.log("🔍 API Request Debug:");
@@ -107,7 +141,7 @@ export async function createLimitOrderWorking(config = {}) {
       },
       
       // Add POST method that the API expects
-      async post(url, data, config = {}) {
+      async post(url: string, data: unknown, config: { headers?: Record<string, string> } = {}) {
         return this.request({
           url,
           method: 'POST',
@@ -117,7 +151,7 @@ export async function createLimitOrderWorking(config = {}) {
       },
       
       // Add GET method for completeness
-      async get(url, config = {}) {
+      async get(url: string, config: { headers?: Record<string, string> } = {}) {
         return this.request({
           url,
           method: 'GET',
@@ -164,7 +198,7 @@ export async function createLimitOrderWorking(config = {}) {
     // Update our HTTP connector to handle auth properly  
     const authAwareConnector = {
       ...httpConnector,
-      async request(config) {
+      async request(config: { url: string; method?: string; data?: unknown; headers?: Record<string, string> }) {
         // Ensure auth header is included
         const authHeaders = {
           'Authorization': `Bearer ${authKey}`,
@@ -196,8 +230,8 @@ export async function createLimitOrderWorking(config = {}) {
     // Use custom tokens if provided, otherwise use defaults
     const makerAssetAddress = customTokens?.makerAsset || TOKENS.USDT;
     const takerAssetAddress = customTokens?.takerAsset || TOKENS.INCH;
-    const makingAmount = customTokens?.makingAmount ? BigInt(customTokens.makingAmount) : 100_000000n;
-    const takingAmount = customTokens?.takingAmount ? BigInt(customTokens.takingAmount) : 10_000000000000000000n;
+    const makingAmount = customTokens?.makingAmount ? BigInt(customTokens.makingAmount) : BigInt(100_000000);
+    const takingAmount = customTokens?.takingAmount ? BigInt(customTokens.takingAmount) : BigInt("10000000000000000000");
     
     const orderParams = {
       makerAsset: new Address(makerAssetAddress),
@@ -221,7 +255,7 @@ export async function createLimitOrderWorking(config = {}) {
     const orderWithDefaults = {
       ...orderParams,
       // Ensure receiver is set properly (use maker address if not specified)  
-      receiver: orderParams.receiver || orderParams.maker,
+      receiver: orderParams.maker,
     };
     
     // Don't include extension - let the constructor handle it
@@ -244,7 +278,8 @@ export async function createLimitOrderWorking(config = {}) {
         });
         console.log("   ✅ Extension override applied");
       } catch (overrideError) {
-        console.log("   ❌ Extension override failed:", overrideError.message);
+        const errorMessage = overrideError instanceof Error ? overrideError.message : 'Unknown error';
+        console.log("   ❌ Extension override failed:", errorMessage);
       }
     }
     console.log("✅ Order created successfully");
@@ -264,7 +299,7 @@ export async function createLimitOrderWorking(config = {}) {
 
     // Step 9: Generate typed data for signing
     console.log("\n📝 Step 9: Generating typed data for signature...");
-    const typedData = order.getTypedData();
+    const typedData = order.getTypedData(networkId);
     console.log("✅ Typed data generated");
     console.log("   Domain:", JSON.stringify(typedData.domain, null, 2));
     console.log("   Message keys:", Object.keys(typedData.message));
@@ -294,7 +329,7 @@ export async function createLimitOrderWorking(config = {}) {
         maker: order.maker.toString(),
         makerAsset: order.makerAsset.toString(),
         takerAsset: order.takerAsset.toString(),
-        makerTraits: order.makerTraits.value?.value?.toString() || order.makerTraits.value?.toString() || order.makerTraits.toString(),
+        makerTraits: order.makerTraits.toString(),
         salt: order.salt.toString(),
         makingAmount: order.makingAmount.toString(),
         takingAmount: order.takingAmount.toString(),
@@ -318,11 +353,11 @@ export async function createLimitOrderWorking(config = {}) {
       
       console.log("✅ Manual order submitted successfully!");
       console.log("   Manual result:", manualResult);
-      var submitResult = manualResult;
       
     } catch (manualError) {
       console.log("❌ Manual submission failed, trying original API...");
-      console.log("   Manual error:", manualError.message);
+      const errorMessage = manualError instanceof Error ? manualError.message : 'Unknown error';
+      console.log("   Manual error:", errorMessage);
       
       // Fallback to original API
       const submitResult = await api.submitOrder(order, signature);
@@ -362,21 +397,21 @@ export async function createLimitOrderWorking(config = {}) {
     console.error("\n❌ ERROR: Failed to create limit order");
     console.error("Error details:", error);
     
-    if (error.message) {
-      console.error("Error message:", error.message);
-    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error("Error message:", errorMessage);
     
-    if (error.response) {
-      console.error("Response status:", error.response.status);
-      console.error("Response data:", error.response.data);
+    if (error instanceof Error && 'response' in error) {
+      const errorWithResponse = error as any;
+      console.error("Response status:", errorWithResponse.response?.status);
+      console.error("Response data:", errorWithResponse.response?.data);
     }
 
     return {
       success: false,
       error: {
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.data,
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        response: error instanceof Error && 'response' in error ? (error as any).response?.data : undefined,
       },
     };
   }
@@ -385,7 +420,7 @@ export async function createLimitOrderWorking(config = {}) {
 /**
  * Test function to run the limit order creation
  */
-export async function testLimitOrderWorking() {
+export async function testLimitOrderWorking(): Promise<LimitOrderResult> {
   console.log("🧪 Running Working Limit Order Test...\n");
   
   const result = await createLimitOrderWorking({

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { TradingStrategy, LimitOrder, Token, PortfolioData } from '../types';
+import { ORDER_STATUS } from '../constants';
 
 interface TradingState {
   // Strategies
@@ -133,7 +134,7 @@ export const useTradingStore = create<TradingState>()(
 
       getPendingOrders: () => {
         const { orders } = get();
-        return orders.filter((o) => o.status === 'pending');
+        return orders.filter((o) => o.status === ORDER_STATUS.PENDING);
       },
     }),
     {

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
-import { createLimitOrder } from '../lib/limitOrder.js';
+import { createLimitOrderWorking } from '../lib/limitOrderWorking';
 
 interface LogEntry {
   timestamp: string;
@@ -60,16 +60,16 @@ export function LimitOrderTester() {
     try {
       addLog('🚀 Starting limit order test...', 'info');
       
-      const result = await createLimitOrder({
-        authKey: config.authKey || undefined,
+      const result = await createLimitOrderWorking({
+        authKey: config.authKey || "demo-key",
         expiresInSeconds: BigInt(config.expiresInSeconds),
         networkId: parseInt(config.networkId),
       });
 
       if (result.success) {
         addLog('✅ Limit order test completed successfully!', 'success');
-        addLog(`Order Hash: ${result.data?.orderHash}`, 'success');
-        addLog(`Maker: ${result.data?.makerAddress}`, 'success');
+        addLog(`Order Hash: ${result.orderHash}`, 'success');
+        addLog(`Maker: ${result.maker}`, 'success');
       } else {
         addLog('❌ Limit order test failed', 'error');
         addLog(`Error: ${result.error?.message}`, 'error');
@@ -85,18 +85,6 @@ export function LimitOrderTester() {
     }
   };
 
-  const getLogColor = (type: LogEntry['type']) => {
-    switch (type) {
-      case 'success':
-        return 'text-green-600';
-      case 'error':
-        return 'text-red-600';
-      case 'warning':
-        return 'text-yellow-600';
-      default:
-        return 'text-gray-700';
-    }
-  };
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -192,7 +180,7 @@ export function LimitOrderTester() {
           >
             {logs.length === 0 ? (
               <div className="text-gray-500">
-                No logs yet. Click "Test Limit Order" to start...
+                No logs yet. Click &quot;Test Limit Order&quot; to start...
               </div>
             ) : (
               logs.map((log, index) => (

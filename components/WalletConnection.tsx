@@ -14,7 +14,7 @@ export function WalletConnection() {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  const formatBalance = (bal: any) => {
+  const formatBalance = (bal: { formatted: string; symbol: string } | null | undefined) => {
     if (!bal) return '0';
     return `${parseFloat(bal.formatted).toFixed(4)} ${bal.symbol}`;
   };
