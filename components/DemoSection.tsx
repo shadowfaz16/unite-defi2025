@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -168,19 +169,23 @@ export function DemoSection() {
               </div>
               
               <div className="mt-6 space-y-3">
-                <Button 
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
-                >
-                  <span className="mr-2">🚀</span>
-                  Try This Strategy
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
-                >
-                  <span className="mr-2">📊</span>
-                  View Detailed Analytics
-                </Button>
+                <Link href="/strategies">
+                  <Button 
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
+                  >
+                    <span className="mr-2">🚀</span>
+                    Try This Strategy
+                  </Button>
+                </Link>
+                <Link href="/analytics">
+                  <Button 
+                    variant="outline"
+                    className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+                  >
+                    <span className="mr-2">📊</span>
+                    View Detailed Analytics
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -196,13 +201,15 @@ export function DemoSection() {
               <p className="text-slate-300 mb-6">
                 Connect your wallet and explore the most comprehensive trading platform in DeFi
               </p>
-              <Button 
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
-              >
-                <span className="mr-2">🔗</span>
-                Launch Trading Hub
-              </Button>
+              <Link href="/dashboard">
+                <Button 
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
+                >
+                  <span className="mr-2">🔗</span>
+                  Launch Trading Hub
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

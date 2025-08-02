@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OneInchAPI } from '../api/oneinch';
-import type { TokenBalance, PriceData, SwapQuote, ApiResponse } from '../types';
+import type { TokenBalance, PriceData } from '../types';
 
 // Custom hook for wallet balances
 export function useWalletBalances(chainId: number, address: string | undefined) {

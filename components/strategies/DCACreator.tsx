@@ -237,7 +237,7 @@ export function DCACreator({ onClose }: Props) {
           )}
           
           <div className="text-sm text-green-700 dark:text-green-300 mt-2">
-            Smart conditions help you "buy the dip" by only executing DCA when favorable conditions are met.
+            Smart conditions help you &quot;buy the dip&quot; by only executing DCA when favorable conditions are met.
           </div>
         </CardContent>
       </Card>

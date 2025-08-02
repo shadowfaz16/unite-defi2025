@@ -3,7 +3,7 @@ import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 import { mainnet, polygon, arbitrum, bsc } from 'wagmi/chains';
 
 export function useWeb3() {
-  const { address, isConnected, chain } = useAccount();
+  const { address, isConnected, chain, status } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   
@@ -32,6 +32,7 @@ export function useWeb3() {
     disconnect,
     isPending,
     connectors,
-    supportedChains: getSupportedChains()
+    supportedChains: getSupportedChains(),
+    status
   };
 }

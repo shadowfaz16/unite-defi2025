@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { WalletConnection } from './WalletConnection';
 
 export function HeroSection() {
   const [currentFeature, setCurrentFeature] = useState(0);
@@ -44,7 +44,12 @@ export function HeroSection() {
   }, [features.length]);
 
   return (
-    <div className="relative">
+    <div className="relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-cyan-500/10 animate-pulse"></div>
+      </div>
+      
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
         <div className="text-center space-y-8">
           {/* Badges */}
@@ -96,15 +101,25 @@ export function HeroSection() {
 
           {/* CTA buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <WalletConnection />
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md"
-            >
-              <span className="mr-2">🎬</span>
-              View Demo
-            </Button>
+            <Link href="/dashboard">
+              <Button 
+                size="lg"
+                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
+              >
+                <span className="mr-2">🚀</span>
+                Launch Trading Hub
+              </Button>
+            </Link>
+            <Link href="/demo">
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md"
+              >
+                <span className="mr-2">🎬</span>
+                View Demo
+              </Button>
+            </Link>
           </div>
 
           {/* Stats */}

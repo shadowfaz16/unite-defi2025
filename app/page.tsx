@@ -1,7 +1,7 @@
 'use client';
 
-import { TradingDashboard } from '../components/TradingDashboard';
+import { LandingPage } from '../components/LandingPage';
 
 export default function Home() {
-  return <TradingDashboard />;
+  return <LandingPage />;
 }

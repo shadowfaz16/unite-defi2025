@@ -22,6 +22,7 @@ export class TWAPStrategy {
     this.api = new Api({
       authKey: ONEINCH_API_KEY,
       networkId,
+      httpConnector: new FetchProviderConnector(),
     });
   }
 

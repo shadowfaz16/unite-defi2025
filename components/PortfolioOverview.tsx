@@ -139,7 +139,7 @@ export function PortfolioOverview() {
               <div className="text-center text-gray-500 py-8">
                 <div className="text-4xl mb-2">💰</div>
                 <p>No assets found</p>
-                <p className="text-sm">Make sure you're on the right network</p>
+                <p className="text-sm">Make sure you&apos;re on the right network</p>
               </div>
             )}
           </CardContent>

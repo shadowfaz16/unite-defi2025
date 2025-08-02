@@ -1,4 +1,4 @@
-import { http, createConfig } from 'wagmi';
+import { http, createConfig, createStorage } from 'wagmi';
 import { mainnet, polygon, arbitrum, bsc, avalanche } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 
@@ -27,4 +27,12 @@ export const config = createConfig({
     [bsc.id]: http(),
     [avalanche.id]: http(),
   },
+  // Enable localStorage persistence to maintain wallet connection across page refreshes
+  storage: createStorage({
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  }),
+  // Enable SSR for proper hydration
+  ssr: true,
+  // Enable auto-discovery for better wallet connection
+  multiInjectedProviderDiscovery: true,
 });

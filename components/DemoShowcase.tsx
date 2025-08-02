@@ -393,7 +393,7 @@ export function DemoShowcase() {
               <h3 className="font-semibold mb-3">Real Innovation</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Pushes boundaries of DeFi automation with novel applications of limit orders,
-                creating value that doesn't exist in current DeFi ecosystem.
+                creating value that doesn&apos;t exist in current DeFi ecosystem.
               </p>
             </div>
           </div>
