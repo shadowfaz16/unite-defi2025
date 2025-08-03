@@ -349,7 +349,7 @@ export async function createLimitOrderWorking(config: LimitOrderConfig = {}): Pr
         console.log("🔧 Order data for manual submission:", JSON.stringify(orderData, null, 2));
         
         const manualResult = await authAwareConnector.post(
-          `https://api.1inch.dev/orderbook/v4.0/${networkId}`,
+          `https://1inch-vercel-proxy-lyart.vercel.app/orderbook/v4.0/${networkId}`,
           {
             orderHash: orderHash,
             signature: signature,

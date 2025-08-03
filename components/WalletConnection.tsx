@@ -79,18 +79,7 @@ export function WalletConnection() {
                   MetaMask / Browser Wallet
                 </Button>
                 
-                <Button
-                  variant="outline"
-                  className="w-full justify-start hover:bg-accent"
-                  onClick={() => {
-                    connect('walletconnect');
-                    setShowConnectors(false);
-                  }}
-                >
-                  <span className="mr-2">🔗</span>
-                  WalletConnect
-                </Button>
-                
+
                 <Button
                   variant="outline"
                   className="w-full justify-start hover:bg-accent"

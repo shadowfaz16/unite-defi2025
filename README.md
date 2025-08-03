@@ -206,7 +206,7 @@ const fusionOrder = await OneInchAPI.createFusionOrder(
 ### Prerequisites
 - Node.js 18+
 - Bun package manager
-- Web3 wallet (MetaMask, WalletConnect, etc.)
+- Web3 wallet (MetaMask, Coinbase Wallet, etc.)
 
 ### Installation
 ```bash
@@ -222,7 +222,7 @@ cp .env.example .env.local
 
 # Add your API keys
 NEXT_PUBLIC_ONEINCH_API_KEY=your_1inch_api_key
-NEXT_PUBLIC_WC_PROJECT_ID=your_walletconnect_id
+# NEXT_PUBLIC_WC_PROJECT_ID=your_walletconnect_id # No longer needed - WalletConnect removed
 ```
 
 ### Development

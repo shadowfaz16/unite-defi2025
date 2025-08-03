@@ -237,7 +237,7 @@ const fusionOrder = await OneInchAPI.createFusionOrder(
 
 #### 2. Wallet Integration
 - ✅ MetaMask support
-- ✅ WalletConnect integration
+- ✅ Browser wallet integration (MetaMask, etc.)
 - ✅ Coinbase Wallet support
 - ✅ Multi-chain switching
 - ✅ Balance display and management

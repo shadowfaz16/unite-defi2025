@@ -281,19 +281,7 @@ export function NavUser() {
                       MetaMask / Browser
                     </Button>
                     
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start text-sm h-8"
-                      onClick={() => {
-                        connect('walletconnect')
-                        setShowConnectors(false)
-                      }}
-                    >
-                      <span className="mr-2">🔗</span>
-                      WalletConnect
-                    </Button>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"

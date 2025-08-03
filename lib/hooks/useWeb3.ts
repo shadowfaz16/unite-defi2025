@@ -1,5 +1,5 @@
 import { useAccount, useConnect, useDisconnect, useBalance, useSwitchChain } from 'wagmi';
-import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
+import { injected, coinbaseWallet } from 'wagmi/connectors';
 import { mainnet, polygon, arbitrum, bsc, avalanche, sepolia } from 'wagmi/chains';
 
 export function useWeb3() {
@@ -12,10 +12,9 @@ export function useWeb3() {
     address: address,
   });
 
-  const connectWallet = (connectorType: 'injected' | 'walletconnect' | 'coinbase' = 'injected') => {
+  const connectWallet = (connectorType: 'injected' | 'coinbase' = 'injected') => {
     const connectorMap = {
       injected: injected(),
-      walletconnect: walletConnect({ projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || '' }),
       coinbase: coinbaseWallet({ appName: '1inch Advanced Trading Hub' })
     };
 
