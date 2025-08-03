@@ -523,29 +523,86 @@ export class OneInchAPI {
 
       console.log('Order data prepared for 1inch API v4.0:', orderData);
 
-      // Use DIRECT 1inch API for order submission (not proxy) to avoid CORS issues
-      const url = `https://api.1inch.dev/orderbook/v4.0/${chainId}/order`;
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${ONEINCH_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      };
+      // TRIPLE FALLBACK SYSTEM:
+      // 1. Direct 1inch API
+      // 2. Next.js Proxy
+      // 3. Vercel Proxy
 
-      console.log('Making DIRECT POST request to 1inch API:', url);
-      console.log('Request config:', { ...config, headers: { ...config.headers, Authorization: '[REDACTED]' } });
-      
-      const response = await axios.post(url, orderData, config);
-      
-      console.log('✅ Limit order submitted successfully:', response.data);
-      
-      return { 
-        success: true, 
-        data: { 
-          success: response.data.success || true, 
-          orderHash: orderData.orderHash 
-        } 
-      };
+      // Try 1: Direct 1inch API
+      try {
+        console.log('🔄 Attempt 1: Direct 1inch API...');
+        const directUrl = `https://api.1inch.dev/orderbook/v4.0/${chainId}/order`;
+        const directConfig = {
+          headers: {
+            'Authorization': `Bearer ${ONEINCH_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        };
+        
+        const directResponse = await axios.post(directUrl, orderData, directConfig);
+        console.log('✅ Direct 1inch API successful:', directResponse.data);
+        
+        return { 
+          success: true, 
+          data: { 
+            success: true, 
+            orderHash: directResponse.data?.orderHash || orderData.orderHash 
+          } 
+        };
+      } catch (directError) {
+        console.warn('⚠️ Direct 1inch API failed, trying Next.js proxy...');
+      }
+
+      // Try 2: Next.js Proxy
+      try {
+        console.log('🔄 Attempt 2: Next.js proxy...');
+        const proxyUrl = `/api/1inch/orderbook/v4.0/${chainId}/order`;
+        const proxyConfig = {
+          headers: {
+            'Authorization': `Bearer ${ONEINCH_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        };
+        
+        const proxyResponse = await axios.post(proxyUrl, orderData, proxyConfig);
+        console.log('✅ Next.js proxy successful:', proxyResponse.data);
+        
+        return { 
+          success: true, 
+          data: { 
+            success: true, 
+            orderHash: proxyResponse.data?.orderHash || orderData.orderHash 
+          } 
+        };
+      } catch (proxyError) {
+        console.warn('⚠️ Next.js proxy failed, trying Vercel proxy...');
+      }
+
+      // Try 3: Vercel Proxy (same as other API calls)
+      try {
+        console.log('🔄 Attempt 3: Vercel proxy...');
+        const vercelUrl = `${ONEINCH_API_BASE}/orderbook/v4.0/${chainId}/order`;
+        const vercelConfig = {
+          headers: {
+            'Authorization': `Bearer ${ONEINCH_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        };
+        
+        const vercelResponse = await axios.post(vercelUrl, orderData, vercelConfig);
+        console.log('✅ Vercel proxy successful:', vercelResponse.data);
+        
+        return { 
+          success: true, 
+          data: { 
+            success: true, 
+            orderHash: vercelResponse.data?.orderHash || orderData.orderHash 
+          } 
+        };
+      } catch (vercelError) {
+        console.error('❌ All three API attempts failed');
+        throw new Error('All API endpoints failed - using local storage fallback');
+      }
     } catch (error: any) {
       console.error('❌ Error submitting limit order:', error);
       console.error('Error details:');
@@ -559,7 +616,9 @@ export class OneInchAPI {
       }
       
       let errorMessage = error.message;
-      if (error.code === 'ERR_NETWORK' || error.message.includes('CORS')) {
+      if (error.message.includes('All API endpoints failed')) {
+        errorMessage = 'All three API endpoints failed - Using fallback local storage instead. Order will be stored locally for demo.';
+      } else if (error.code === 'ERR_NETWORK' || error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
         errorMessage = 'CORS/Network error - Using fallback local storage instead. Order will be stored locally for demo.';
       } else if (error.response?.status === 400) {
         errorMessage = 'Invalid order data - ' + (error.response.data?.message || error.response.data?.error || 'Bad request');
