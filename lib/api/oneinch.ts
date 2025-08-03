@@ -372,6 +372,78 @@ export class OneInchAPI {
     }
   }
 
+  // Charts API - Get candlestick data
+  static async getCandlestickData(
+    token0: string,
+    token1: string,
+    seconds: number,
+    chainId: number = 1
+  ): Promise<ApiResponse<any[]>> {
+    try {
+      console.log(`Fetching candlestick data for ${token0}/${token1} with ${seconds}s candles on chain ${chainId}...`);
+      console.log('API Key available:', !!ONEINCH_API_KEY);
+      console.log('API Base URL:', ONEINCH_API_BASE);
+      
+      // Use the same proxy approach as other APIs
+      const url = `${ONEINCH_API_BASE}/charts/v1.0/chart/aggregated/candle/${token0}/${token1}/${seconds}/${chainId}`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {},
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making request to:', url);
+      console.log('Request config:', { ...config, headers: { ...config.headers, Authorization: '[REDACTED]' } });
+      
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Candlestick data response received:', response.data);
+      
+      // Transform the API response to match candlestick format
+      const candlestickData = response.data.data.map((candle: any) => ({
+        time: new Date(candle.time * 1000).toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          month: 'short',
+          day: 'numeric'
+        }),
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        timestamp: candle.time * 1000
+      }));
+
+      return { success: true, data: candlestickData };
+    } catch (error: any) {
+      console.error('❌ Error fetching candlestick data:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Candlestick data not found for this token pair';
+      }
+      
+      return { success: false, data: [], error: errorMessage };
+    }
+  }
+
   // Transaction History API - Get wallet transaction history
   static async getTransactionHistory(
     address: string,

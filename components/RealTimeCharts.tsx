@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Chart } from 'react-google-charts';
 import { ChartData } from '../lib/types';
 import { OneInchAPI } from '../lib/api/oneinch';
 import { TOKEN_ADDRESSES } from '../lib/constants';
@@ -89,8 +90,11 @@ const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
 
 export function RealTimeCharts() {
   const [period, setPeriod] = useState<'24H' | '1W' | '1M' | '1Y' | 'AllTime'>('24H');
+  const [candlestickPeriod, setCandlestickPeriod] = useState(3600); // Default to 1 hour
   const [selectedToken, setSelectedToken] = useState(AVAILABLE_TOKENS[0]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [candlestickData, setCandlestickData] = useState<any[]>([]);
+  const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,19 +106,36 @@ export function RealTimeCharts() {
       try {
         console.log(`Fetching chart data for ${selectedToken.symbol} vs USDT, period: ${period}`);
         
-        const result = await OneInchAPI.getChartData(
-          selectedToken.address,
-          USDT_ADDRESS,
-          period,
-          1 // Ethereum mainnet
-        );
+        // Fetch both line and candlestick data
+        const [lineResult, candlestickResult] = await Promise.all([
+          OneInchAPI.getChartData(
+            selectedToken.address,
+            USDT_ADDRESS,
+            period,
+            1 // Ethereum mainnet
+          ),
+          OneInchAPI.getCandlestickData(
+            selectedToken.address,
+            USDT_ADDRESS,
+            candlestickPeriod,
+            1 // Ethereum mainnet
+          )
+        ]);
 
-        if (result.success) {
-          setChartData(result.data);
-          console.log(`✅ Successfully loaded ${result.data.length} data points`);
+        if (lineResult.success) {
+          setChartData(lineResult.data);
+          console.log(`✅ Successfully loaded ${lineResult.data.length} line data points`);
         } else {
-          setError(result.error || 'Failed to fetch chart data');
-          console.error('❌ Failed to fetch chart data:', result.error);
+          setError(lineResult.error || 'Failed to fetch line chart data');
+          console.error('❌ Failed to fetch line chart data:', lineResult.error);
+        }
+
+        if (candlestickResult.success) {
+          setCandlestickData(candlestickResult.data);
+          console.log(`✅ Successfully loaded ${candlestickResult.data.length} candlestick data points`);
+        } else {
+          console.warn('⚠️ Failed to fetch candlestick data:', candlestickResult.error);
+          // Don't set error for candlestick as it's optional
         }
       } catch (err: any) {
         setError(err.message || 'An unexpected error occurred');
@@ -125,10 +146,28 @@ export function RealTimeCharts() {
     };
 
     fetchChartData();
-  }, [period, selectedToken]);
+  }, [period, candlestickPeriod, selectedToken]);
 
-  const currentPrice = chartData[chartData.length - 1]?.price || 0;
-  const previousPrice = chartData[chartData.length - 2]?.price || currentPrice;
+  // Get current price based on chart type
+  const getCurrentPrice = () => {
+    if (chartType === 'line') {
+      return chartData[chartData.length - 1]?.price || 0;
+    } else {
+      return candlestickData[candlestickData.length - 1]?.close || 0;
+    }
+  };
+
+  // Get previous price based on chart type
+  const getPreviousPrice = () => {
+    if (chartType === 'line') {
+      return chartData[chartData.length - 2]?.price || getCurrentPrice();
+    } else {
+      return candlestickData[candlestickData.length - 2]?.close || getCurrentPrice();
+    }
+  };
+
+  const currentPrice = getCurrentPrice();
+  const previousPrice = getPreviousPrice();
   const priceChange = currentPrice - previousPrice;
   const priceChangePercent = previousPrice !== 0 ? (priceChange / previousPrice) * 100 : 0;
 
@@ -140,10 +179,28 @@ export function RealTimeCharts() {
     { label: 'All', value: 'AllTime' as const },
   ];
 
+  // Candlestick periods in minutes
+  const candlestickPeriods = [
+    { label: '5m', value: 300, seconds: 300 },
+    { label: '15m', value: 900, seconds: 900 },
+    { label: '1h', value: 3600, seconds: 3600 },
+    { label: '4h', value: 14400, seconds: 14400 },
+    { label: '1d', value: 86400, seconds: 86400 },
+    { label: '1w', value: 604800, seconds: 604800 },
+  ];
+
   // Calculate min and max for better chart scaling
-  const prices = chartData.map(d => d.price);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
+  const getPrices = () => {
+    if (chartType === 'line') {
+      return chartData.map(d => d.price);
+    } else {
+      return candlestickData.flatMap(d => [d.low, d.high, d.open, d.close]);
+    }
+  };
+
+  const prices = getPrices();
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
   const priceRange = maxPrice - minPrice;
   const chartMin = minPrice - priceRange * 0.05;
   const chartMax = maxPrice + priceRange * 0.05;
@@ -187,19 +244,61 @@ export function RealTimeCharts() {
               <span>{selectedToken.emoji}</span>
               <span>{selectedToken.symbol}/USDT</span>
             </CardTitle>
-            <div className="flex space-x-1">
-              {periods.map((p) => (
+            <div className="flex items-center space-x-2">
+              {/* Chart Type Toggle */}
+              <div className="flex space-x-1 mr-4">
                 <Button
-                  key={p.value}
-                  variant={period === p.value ? 'default' : 'outline'}
+                  variant={chartType === 'line' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setPeriod(p.value)}
+                  onClick={() => setChartType('line')}
                   className="text-xs"
                   disabled={loading}
                 >
-                  {p.label}
+                  Line
                 </Button>
-              ))}
+                <Button
+                  variant={chartType === 'candlestick' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setChartType('candlestick')}
+                  className="text-xs"
+                  disabled={loading}
+                >
+                  Candlestick
+                </Button>
+              </div>
+              
+              {/* Period Toggle */}
+              <div className="flex space-x-1">
+                {chartType === 'line' ? (
+                  // Line chart periods
+                  periods.map((p) => (
+                    <Button
+                      key={p.value}
+                      variant={period === p.value ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPeriod(p.value)}
+                      className="text-xs"
+                      disabled={loading}
+                    >
+                      {p.label}
+                    </Button>
+                  ))
+                ) : (
+                  // Candlestick periods
+                  candlestickPeriods.map((p) => (
+                    <Button
+                      key={p.value}
+                      variant={candlestickPeriod === p.seconds ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCandlestickPeriod(p.seconds)}
+                      className="text-xs"
+                      disabled={loading}
+                    >
+                      {p.label}
+                    </Button>
+                  ))
+                )}
+              </div>
             </div>
           </div>
           
@@ -208,7 +307,7 @@ export function RealTimeCharts() {
               <span className="text-2xl font-bold">
                 {loading ? '...' : currentPrice >= 1.0 ? currentPrice.toFixed(2) : currentPrice.toFixed(6)}
               </span>
-              {!loading && chartData.length > 0 && (
+              {!loading && ((chartType === 'line' && chartData.length > 0) || (chartType === 'candlestick' && candlestickData.length > 0)) && (
                 <span className={`text-sm font-medium ${
                   priceChange >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
@@ -237,11 +336,11 @@ export function RealTimeCharts() {
                   <p className="text-sm text-gray-500">Loading chart data...</p>
                 </div>
               </div>
-            ) : chartData.length === 0 ? (
+            ) : (chartType === 'line' && chartData.length === 0) || (chartType === 'candlestick' && candlestickData.length === 0) ? (
               <div className="flex items-center justify-center h-full">
                 <p className="text-gray-500">No data available</p>
               </div>
-            ) : (
+            ) : chartType === 'line' ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -288,11 +387,60 @@ export function RealTimeCharts() {
                   />
                 </LineChart>
               </ResponsiveContainer>
+            ) : (
+              // Candlestick Chart
+              <ResponsiveContainer width="100%" height="100%">
+                <div className="h-full">
+                  {candlestickData.length > 0 ? (
+                    <Chart
+                      chartType="CandlestickChart"
+                      width="100%"
+                      height="100%"
+                      data={[
+                        ['Time', 'Low', 'Open', 'Close', 'High'],
+                        ...candlestickData.map((candle) => [
+                          candle.time,
+                          candle.low,
+                          candle.open,
+                          candle.close,
+                          candle.high
+                        ])
+                      ]}
+                      options={{
+                        legend: 'none',
+                        bar: { groupWidth: '80%' },
+                        candlestick: {
+                          fallingColor: { strokeWidth: 0, fill: '#ef4444' }, // red
+                          risingColor: { strokeWidth: 0, fill: '#22c55e' }, // green
+                        },
+                        hAxis: {
+                          textStyle: { fontSize: 12 },
+                          slantedText: true,
+                          slantedTextAngle: 45,
+                        },
+                        vAxis: {
+                          textStyle: { fontSize: 12 },
+                          format: 'decimal',
+                        },
+                        backgroundColor: 'transparent',
+                        chartArea: {
+                          backgroundColor: 'transparent',
+                        },
+                        height: 320, // Match the line chart height
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-500">No candlestick data available</p>
+                    </div>
+                  )}
+                </div>
+              </ResponsiveContainer>
             )}
           </div>
 
           {/* Price Statistics */}
-          {!loading && chartData.length > 0 && (
+          {!loading && ((chartType === 'line' && chartData.length > 0) || (chartType === 'candlestick' && candlestickData.length > 0)) && (
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
                 <div className="flex justify-between">
@@ -307,18 +455,23 @@ export function RealTimeCharts() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Data Points:</span>
-                  <span className="font-medium">{chartData.length}</span>
+                  <span className="font-medium">{chartType === 'line' ? chartData.length : candlestickData.length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Period:</span>
-                  <span className="font-medium">{period}</span>
+                  <span className="font-medium">
+                    {chartType === 'line' 
+                      ? period 
+                      : candlestickPeriods.find(p => p.seconds === candlestickPeriod)?.label || '1h'
+                    }
+                  </span>
                 </div>
               </div>
             </div>
           )}
 
           {/* Technical Info */}
-          {!loading && chartData.length > 0 && (
+          {!loading && ((chartType === 'line' && chartData.length > 0) || (chartType === 'candlestick' && candlestickData.length > 0)) && (
             <div className="mt-4 pt-4 border-t">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Data Source:</span>
