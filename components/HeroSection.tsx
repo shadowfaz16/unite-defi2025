@@ -81,7 +81,7 @@ export function HeroSection() {
           {/* Feature showcase */}
           <div className="flex justify-center">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50 p-6 shadow-lg">
-              <CardContent className="flex items-center space-x-4 p-0">
+              <CardContent className="flex items-center gap-4 pb-0">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${features[currentFeature].color} flex items-center justify-center text-2xl shadow-lg`}>
                   {features[currentFeature].icon}
                 </div>

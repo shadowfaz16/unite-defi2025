@@ -193,8 +193,8 @@ export function DemoSection() {
 
         {/* Bottom CTA */}
         <div className="text-center mt-16">
-          <Card className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-200 dark:border-blue-800 max-w-2xl mx-auto">
-            <CardContent className="p-8">
+          <Card className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-200 dark:border-blue-800 max-w-2xl mx-auto p-8">
+            <CardContent className="">
               <h3 className="text-2xl font-bold text-foreground mb-4">
                 Ready to Experience Advanced DeFi Trading?
               </h3>

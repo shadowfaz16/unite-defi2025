@@ -55,7 +55,7 @@ const data = {
       icon: Briefcase,
     },
     {
-      title: "Orders",
+      title: "API Orders",
       url: "/orders",
       icon: FileText,
     },

@@ -55,8 +55,8 @@ export function FooterSection() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {hackathonCompliance.map((track, index) => (
-              <Card key={index} className="bg-card border-border">
-                <CardContent className="p-6">
+              <Card key={index} className="bg-card border-border p-4">
+                <CardContent className="pb-0">
                   <div className="flex items-center space-x-3 mb-4">
                     <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${track.color}`}></div>
                     <h3 className="text-lg font-semibold text-foreground">

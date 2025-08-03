@@ -45,17 +45,6 @@ export default function DashboardPage() {
     },
   ];
 
-  const portfolioStats = [
-    {
-      label: "Total Value",
-      value: "$12,450.00",
-      change: "+$234.50",
-      positive: true,
-    },
-    { label: "Active Orders", value: "8", change: "+3", positive: true },
-    { label: "Strategies Running", value: "4", change: "0", positive: null },
-    { label: "24h P&L", value: "+$156.75", change: "+1.2%", positive: true },
-  ];
 
   return (
     <div className="space-y-8">
@@ -69,43 +58,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Portfolio Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {portfolioStats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader>
-              <CardTitle>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {stat.label}
-                  </span>
-                  {stat.positive !== null && (
-                    <Badge
-                      variant={stat.positive ? "default" : "destructive"}
-                      className={
-                        stat.positive
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                      }
-                    >
-                      {stat.change}
-                    </Badge>
-                  )}
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {stat.value}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {/* Gas Price Information */}
       {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

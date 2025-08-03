@@ -10,12 +10,35 @@ import { ConcentratedLiquidityCreator } from './strategies/ConcentratedLiquidity
 import { GridTradingCreator } from './strategies/GridTradingCreator';
 import { ArbitrageCreator } from './strategies/ArbitrageCreator';
 import { useTradingStore } from '../lib/stores/tradingStore';
+import { ChevronDown, ChevronRight, Settings, Trash2, Play, Pause } from 'lucide-react';
 
 export function StrategyPanel() {
   const [activeCreator, setActiveCreator] = useState<string | null>(null);
-  const { strategies, getActiveStrategies } = useTradingStore();
+  const [expandedStrategies, setExpandedStrategies] = useState<Set<string>>(new Set());
+  const { strategies, getActiveStrategies, updateStrategy, removeStrategy } = useTradingStore();
   
-  const activeStrategies = getActiveStrategies();
+  const activeStrategies = getActiveStrategies()
+    .sort((a, b) => b.createdAt - a.createdAt); // Sort by newest first
+
+  const toggleStrategyExpansion = (strategyId: string) => {
+    const newExpanded = new Set(expandedStrategies);
+    if (newExpanded.has(strategyId)) {
+      newExpanded.delete(strategyId);
+    } else {
+      newExpanded.add(strategyId);
+    }
+    setExpandedStrategies(newExpanded);
+  };
+
+  const toggleStrategyStatus = (strategyId: string, currentStatus: boolean) => {
+    updateStrategy(strategyId, { isActive: !currentStatus });
+  };
+
+  const deleteStrategy = (strategyId: string) => {
+    if (confirm('Are you sure you want to delete this strategy?')) {
+      removeStrategy(strategyId);
+    }
+  };
 
   const strategyTypes = [
     {
@@ -29,7 +52,7 @@ export function StrategyPanel() {
     {
       id: 'arbitrage',
       name: 'Multi-Market Arbitrage',
-      description: 'Auto-detect and execute profitable price differences across markets',
+      description: 'Auto-detect price differences and execute across markets',
       icon: '⚡',
       color: 'from-purple-500 to-pink-600',
       featured: true,
@@ -107,7 +130,7 @@ export function StrategyPanel() {
                           <Button 
                             size="sm" 
                             variant="secondary" 
-                            className="opacity-0 group-hover:opacity-100 transition-opacity mt-8"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity mt-8 cursor-pointer"
                           >
                             Create
                           </Button>
@@ -136,7 +159,7 @@ export function StrategyPanel() {
                           <Button 
                             size="sm" 
                             variant="secondary" 
-                            className="opacity-0 group-hover:opacity-100 transition-opacity mt-3 w-full"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity mt-3 w-full bg-white hover:bg-gray-100 cursor-pointer"
                           >
                             Create
                           </Button>
@@ -195,47 +218,221 @@ export function StrategyPanel() {
             </div>
           ) : (
             <div className="space-y-4">
-              {activeStrategies.map((strategy) => (
-                <div
-                  key={strategy.id}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <div>
-                        <h4 className="font-medium">{strategy.name}</h4>
-                        <p className="text-sm text-gray-500">{strategy.description}</p>
+              {activeStrategies.map((strategy) => {
+                const isExpanded = expandedStrategies.has(strategy.id);
+                const isActive = strategy.isActive;
+                
+                return (
+                  <div
+                    key={strategy.id}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    {/* Strategy Header - Clickable */}
+                    <div 
+                      className="p-4 cursor-pointer"
+                      onClick={() => toggleStrategyExpansion(strategy.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                          <div className="flex items-center space-x-2">
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-gray-500" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-gray-500" />
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{strategy.name}</h4>
+                            <p className="text-sm text-gray-500">{strategy.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                            {strategy.type}
+                          </span>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleStrategyStatus(strategy.id, isActive);
+                            }}
+                          >
+                            {isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteStrategy(strategy.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Created:</span>
+                          <span className="ml-1 font-medium">
+                            {new Date(strategy.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Status:</span>
+                          <span className={`ml-1 font-medium ${isActive ? 'text-green-600' : 'text-gray-600'}`}>
+                            {isActive ? 'Active' : 'Paused'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Type:</span>
+                          <span className="ml-1 font-medium">{strategy.type}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                        {strategy.type}
-                      </span>
-                      <Button variant="outline" size="sm">
-                        Manage
-                      </Button>
-                    </div>
+
+                    {/* Expanded Details */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
+                        <div className="space-y-4">
+                          {/* Strategy Parameters */}
+                          <div>
+                            <h5 className="font-medium text-sm mb-2 flex items-center space-x-2">
+                              <Settings className="w-4 h-4" />
+                              <span>Strategy Parameters</span>
+                            </h5>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                              {Object.entries(strategy.parameters).map(([key, value]) => {
+                                // Handle token objects specially
+                                let displayValue = String(value);
+                                
+                                // Handle different token parameter names
+                                if (['fromToken', 'toToken', 'baseToken', 'quoteToken'].includes(key)) {
+                                  if (value && typeof value === 'object' && 'symbol' in value) {
+                                    displayValue = value.symbol;
+                                  }
+                                }
+                                
+                                // Handle amount per order with proper decimal formatting
+                                if (key === 'amountPerOrder' && strategy.parameters.fromToken) {
+                                  const fromToken = strategy.parameters.fromToken;
+                                  if (fromToken && typeof fromToken === 'object' && 'decimals' in fromToken) {
+                                    const decimals = fromToken.decimals || 18;
+                                    const amount = BigInt(value);
+                                    const divisor = BigInt(10 ** decimals);
+                                    const wholePart = amount / divisor;
+                                    const fractionalPart = amount % divisor;
+                                    
+                                    let formattedAmount = wholePart.toString();
+                                    if (fractionalPart > 0) {
+                                      const fractionalStr = fractionalPart.toString().padStart(decimals, '0');
+                                      // Remove trailing zeros
+                                      const trimmedFractional = fractionalStr.replace(/0+$/, '');
+                                      if (trimmedFractional) {
+                                        formattedAmount += '.' + trimmedFractional;
+                                      }
+                                    }
+                                    
+                                    displayValue = `${formattedAmount} ${fromToken.symbol || ''}`;
+                                  }
+                                }
+                                
+                                // Handle total capital with proper decimal formatting
+                                if (key === 'totalCapital' && (strategy.parameters.baseToken || strategy.parameters.fromToken)) {
+                                  const token = strategy.parameters.baseToken || strategy.parameters.fromToken;
+                                  if (token && typeof token === 'object' && 'decimals' in token) {
+                                    const decimals = token.decimals || 18;
+                                    const amount = BigInt(value);
+                                    const divisor = BigInt(10 ** decimals);
+                                    const wholePart = amount / divisor;
+                                    const fractionalPart = amount % divisor;
+                                    
+                                    let formattedAmount = wholePart.toString();
+                                    if (fractionalPart > 0) {
+                                      const fractionalStr = fractionalPart.toString().padStart(decimals, '0');
+                                      // Remove trailing zeros
+                                      const trimmedFractional = fractionalStr.replace(/0+$/, '');
+                                      if (trimmedFractional) {
+                                        formattedAmount += '.' + trimmedFractional;
+                                      }
+                                    }
+                                    
+                                    displayValue = `${formattedAmount} ${token.symbol || ''}`;
+                                  }
+                                }
+                                
+                                // Handle price values with proper formatting
+                                if (['lowerPrice', 'upperPrice', 'currentGridCenter', 'profitPercentage'].includes(key)) {
+                                  if (typeof value === 'number') {
+                                    displayValue = value.toFixed(2);
+                                  }
+                                }
+                                
+                                // Handle boolean values
+                                if (typeof value === 'boolean') {
+                                  displayValue = value ? 'Yes' : 'No';
+                                }
+                                
+                                // Handle maker address formatting
+                                if (key === 'maker' && typeof value === 'string' && value.startsWith('0x')) {
+                                  const address = value;
+                                  displayValue = `${address.slice(0, 6)}...${address.slice(-4)}`;
+                                }
+                                
+                                // Handle timestamp values
+                                if (key === 'lastRebalanceTime' && typeof value === 'number') {
+                                  displayValue = new Date(value).toLocaleString();
+                                }
+                                
+                                // Handle numeric values that should be displayed as numbers
+                                if (['gridLevels', 'totalOrders', 'executedOrders', 'totalTrades', 'successfulTrades', 'filledOrders'].includes(key)) {
+                                  if (typeof value === 'number' || typeof value === 'string') {
+                                    displayValue = String(value);
+                                  }
+                                }
+                                
+                                // Handle total profit with proper formatting
+                                if (key === 'totalProfit' && typeof value === 'number') {
+                                  displayValue = value.toFixed(4);
+                                }
+                                
+                                return (
+                                  <div key={key} className="bg-white dark:bg-gray-800 p-2 rounded border">
+                                    <div className="text-gray-500 text-xs">{key}</div>
+                                    <div className="font-medium">{displayValue}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Strategy Timeline */}
+                          <div>
+                            <h5 className="font-medium text-sm mb-2">Timeline</h5>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Created:</span>
+                                <span>{new Date(strategy.createdAt).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Last Updated:</span>
+                                <span>{new Date(strategy.updatedAt).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Age:</span>
+                                <span>{Math.floor((Date.now() - strategy.createdAt) / (1000 * 60 * 60 * 24))} days</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-500">Created:</span>
-                      <span className="ml-1 font-medium">
-                        {new Date(strategy.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Status:</span>
-                      <span className="ml-1 font-medium text-green-600">Active</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Type:</span>
-                      <span className="ml-1 font-medium">{strategy.type}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

@@ -144,8 +144,8 @@ export function FeaturesSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {apiIntegrations.map((api, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow duration-300 border-border bg-card">
-              <CardContent className="p-6">
+            <Card key={index} className="hover:shadow-lg transition-shadow duration-300 border-border bg-card p-3">
+              <CardContent className="pb-0">
                 <div className="flex items-start space-x-4">
                   <div className="w-10 h-10 bg-gradient-to-r from-muted to-muted/80 rounded-lg flex items-center justify-center text-xl">
                     {api.icon}
