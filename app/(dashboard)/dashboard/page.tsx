@@ -11,6 +11,7 @@ import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import Link from "next/link";
 import { GasPriceCard } from "../../../components/GasPriceCard";
+import { GasPriceDebug } from "../../../components/GasPriceDebug";
 
 export default function DashboardPage() {
   const quickActions = [
@@ -113,7 +114,15 @@ export default function DashboardPage() {
             Network Information
           </h2>
         </div>
-        <GasPriceCard chainId={1} autoRefresh={true} refreshInterval={30} />
+        <GasPriceCard chainId={1} autoRefresh={false} refreshInterval={30} />
+      </div>
+
+      {/* Debug Section - Remove after fixing */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          Debug Information
+        </h2>
+        <GasPriceDebug />
       </div>
 
       {/* Quick Actions */}

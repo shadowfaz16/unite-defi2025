@@ -159,9 +159,27 @@ export class OneInchAPI {
   static async getGasPrice(chainId: number): Promise<ApiResponse<GasPriceData>> {
     try {
       console.log(`Fetching gas prices for chain ${chainId}...`);
-      const response = await api.get(`/gas-price/v1.6/${chainId}`);
+      console.log('API Key available:', !!ONEINCH_API_KEY);
+      console.log('API Base URL:', ONEINCH_API_BASE);
       
-      console.log('Gas price response:', response.data);
+      // Use the exact same approach that worked in our test
+      const url = `${ONEINCH_API_BASE}/gas-price/v1.6/${chainId}`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {},
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making request to:', url);
+      console.log('Request config:', { ...config, headers: { ...config.headers, Authorization: '[REDACTED]' } });
+      
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Gas price response received:', response.data);
       
       const gasData: GasPriceData = {
         baseFee: response.data.baseFee,
@@ -185,8 +203,30 @@ export class OneInchAPI {
 
       return { success: true, data: gasData };
     } catch (error: any) {
-      console.error('Error fetching gas prices:', error);
-      return { success: false, data: {} as GasPriceData, error: error.message };
+      console.error('❌ Error fetching gas prices:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      } else if (error.request) {
+        console.error('- Request was made but no response received');
+        console.error('- Request details:', error.request);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      } else if (error.code === 'NETWORK_ERROR' || error.message.includes('CORS')) {
+        errorMessage = 'Network error - please check your connection';
+      }
+      
+      return { success: false, data: {} as GasPriceData, error: errorMessage };
     }
   }
 }

@@ -25,6 +25,7 @@ export function GasPriceCard({
 
   const fetchGasPrice = async () => {
     try {
+      console.log('🚀 GasPriceCard: Starting fetch for chainId:', chainId);
       setLoading(true);
       setError(null);
       
@@ -33,15 +34,16 @@ export function GasPriceCard({
       if (response.success) {
         setGasData(response.data);
         setLastUpdated(new Date());
-        console.log('Gas price data updated:', response.data);
+        console.log('✅ GasPriceCard: Gas price data updated successfully:', response.data);
       } else {
-        setError(response.error || 'Failed to fetch gas prices');
-        console.error('Failed to fetch gas prices:', response.error);
+        const errorMsg = response.error || 'Failed to fetch gas prices';
+        setError(errorMsg);
+        console.error('❌ GasPriceCard: API returned error:', response.error);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Error fetching gas prices:', err);
+      setError(`Network Error: ${errorMessage}`);
+      console.error('❌ GasPriceCard: Exception caught:', err);
     } finally {
       setLoading(false);
     }
