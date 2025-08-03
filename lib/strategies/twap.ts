@@ -1,7 +1,7 @@
-import { LimitOrder as SDKLimitOrder, MakerTraits, Address, randBigInt, Api,  } from "@1inch/limit-order-sdk";
+import { LimitOrder as SDKLimitOrder } from "@1inch/limit-order-sdk";
 import { ethers } from "ethers";
-import type { TWAPOrder, Token, TradingStrategy, LimitOrder } from '../types';
-import { ONEINCH_API_KEY } from '../constants';
+import { BaseStrategy } from './base-strategy';
+import type { Token, TradingStrategy, LimitOrder } from '../types';
 
 export interface TWAPConfig {
   fromToken: Token;
@@ -13,40 +13,9 @@ export interface TWAPConfig {
   maker: string;
 }
 
-export class TWAPStrategy {
-  private api: Api;
-  private signer: ethers.Wallet;
-
+export class TWAPStrategy extends BaseStrategy {
   constructor(signer: ethers.Wallet, networkId: number = 1) {
-    this.signer = signer;
-    
-    // Create a simple HTTP connector
-    const httpConnector = {
-      async request(config: { url: string; method?: string; data?: unknown; headers?: Record<string, string> }) {
-        const response = await fetch(config.url, {
-          method: config.method || 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ONEINCH_API_KEY}`,
-            ...config.headers,
-          },
-          body: config.data ? JSON.stringify(config.data) : undefined,
-        });
-        return await response.json();
-      },
-      async get(url: string, config: { headers?: Record<string, string> } = {}) {
-        return this.request({ url, method: 'GET', headers: config.headers });
-      },
-      async post(url: string, data: unknown, config: { headers?: Record<string, string> } = {}) {
-        return this.request({ url, method: 'POST', data, headers: config.headers });
-      },
-    };
-    
-    this.api = new Api({
-      authKey: ONEINCH_API_KEY,
-      networkId,
-      httpConnector,
-    });
+    super(signer, networkId);
   }
 
   /**
@@ -94,7 +63,7 @@ export class TWAPStrategy {
   }
 
   /**
-   * Executes the next order in a TWAP strategy
+   * Executes the next order in a TWAP strategy using real-time price data
    */
   async executeNextTWAPOrder(strategy: TradingStrategy): Promise<LimitOrder | null> {
     if (!strategy.isActive || strategy.type !== 'TWAP') {
@@ -114,31 +83,34 @@ export class TWAPStrategy {
       return null;
     }
 
-    const UINT_40_MAX = (BigInt(1) << BigInt(48)) - BigInt(1);
-    const expiresIn = BigInt(3600); // 1 hour expiration
-    const expiration = BigInt(Math.floor(Date.now() / 1000)) + expiresIn;
-
-    const makerTraits = MakerTraits.default()
-      .withExpiration(expiration)
-      .withNonce(randBigInt(UINT_40_MAX));
-
     try {
-      // Get current market price for this token pair
+      // Get current market price using real 1inch API data
       const currentPrice = await this.getCurrentPrice(params.fromToken, params.toToken);
+      console.log(`📊 Current ${params.fromToken.symbol}/${params.toToken.symbol} price: ${currentPrice}`);
       
-      // Calculate taking amount based on current price with slippage protection
       const makingAmount = BigInt(params.amountPerOrder);
-      const baseRate = currentPrice * (1 - params.slippageTolerance / 100);
-      const takingAmount = makingAmount * BigInt(Math.floor(baseRate * 1e18)) / BigInt(1e18);
+      
+      // Calculate taking amount with slippage protection using base class method
+      const { takingAmount } = this.calculateAmountsWithSlippage(
+        makingAmount,
+        currentPrice,
+        params.slippageTolerance,
+        params.fromToken.decimals,
+        params.toToken.decimals
+      );
 
-      // Create limit order using the SDK
-      const order = new SDKLimitOrder({
-        makerAsset: new Address(params.fromToken.address),
-        takerAsset: new Address(params.toToken.address),
+      // Set expiration to 1 hour
+      const expirationTime = BigInt(Math.floor(Date.now() / 1000)) + BigInt(3600);
+
+      // Create and sign the limit order using base class method
+      const { order, signature, customOrder } = await this.createLimitOrder({
+        makerAsset: params.fromToken,
+        takerAsset: params.toToken,
         makingAmount,
         takingAmount,
-        maker: new Address(params.maker),
-      }, makerTraits);
+        maker: params.maker,
+        expiration: expirationTime,
+      });
 
       // Update strategy parameters
       params.executedOrders += 1;
@@ -149,8 +121,9 @@ export class TWAPStrategy {
         strategy.isActive = false;
       }
 
+      // Create enhanced limit order result
       const limitOrder: LimitOrder = {
-        id: `twap_order_${strategy.id}_${params.executedOrders}`,
+        id: customOrder.id,
         makerAsset: params.fromToken,
         takerAsset: params.toToken,
         makingAmount: makingAmount.toString(),
@@ -158,10 +131,16 @@ export class TWAPStrategy {
         maker: params.maker,
         status: 'pending',
         createdAt: Date.now(),
-        expiration: Number(expiration),
-        strategyId: strategy.id
+        expiration: Number(expirationTime),
+        strategyId: strategy.id,
+        signature,
+        orderHash: customOrder.orderHash
       };
 
+      // Submit to custom orderbook (not official 1inch API per hackathon rules)
+      await this.submitToCustomOrderbook(order, signature, customOrder, 'TWAP');
+
+      console.log(`✅ TWAP order ${limitOrder.id} created and submitted to custom orderbook`);
       return limitOrder;
     } catch (error) {
       console.error('Error executing TWAP order:', error);
@@ -170,63 +149,38 @@ export class TWAPStrategy {
   }
 
   /**
-   * Get current market price for token pair
-   */
-  private async getCurrentPrice(fromToken: Token, toToken: Token): Promise<number> {
-    // This would integrate with 1inch Spot Price API
-    // For now, return a mock price
-    return 0.0001; // Mock price ratio
-  }
-
-  /**
    * Submit a signed TWAP order to our custom orderbook
    */
   async submitTWAPOrder(order: SDKLimitOrder): Promise<void> {
-    const typedData = order.getTypedData(1); // Pass networkId
+    // This method creates a custom order and submits it
+    const customOrder = {
+      id: `twap_manual_${Date.now()}`,
+      makerAsset: { address: order.makerAsset.toString() } as Token,
+      takerAsset: { address: order.takerAsset.toString() } as Token,
+      makingAmount: order.makingAmount.toString(),
+      takingAmount: order.takingAmount.toString(),
+      maker: order.maker.toString(),
+      status: 'pending' as const,
+      createdAt: Date.now(),
+      expiration: Date.now() + 3600000, // 1 hour
+    };
+
+    // Use base class method to get signature and submit
+    const typedData = order.getTypedData(this.chainId);
     const signature = await this.signer.signTypedData(
       typedData.domain,
       { Order: typedData.types.Order },
       typedData.message
     );
 
-    // Submit to our custom orderbook, NOT the official 1inch API
-    // This satisfies the hackathon requirement: "Custom Limit Orders should not be posted to official Limit Order API"
-    await this.submitToCustomOrderbook(order, signature);
-  }
-
-  /**
-   * Submit to custom orderbook (not official 1inch API)
-   */
-  private async submitToCustomOrderbook(order: SDKLimitOrder, signature: string): Promise<void> {
-    // Custom implementation - could be a local database, IPFS, or custom API
-    console.log('Submitting to custom orderbook:', {
-      order: order,
-      signature
-    });
-    
-    // Store in local storage or custom backend for demo purposes
-    if (typeof window !== 'undefined') {
-      const customOrders = JSON.parse(localStorage.getItem('custom_twap_orders') || '[]');
-      customOrders.push({
-        order: {
-          makerAsset: order.makerAsset.toString(),
-          takerAsset: order.takerAsset.toString(),
-          makingAmount: order.makingAmount.toString(),
-          takingAmount: order.takingAmount.toString(),
-          maker: order.maker.toString(),
-        },
-        signature,
-        timestamp: Date.now()
-      });
-      localStorage.setItem('custom_twap_orders', JSON.stringify(customOrders));
-    }
+    await this.submitToCustomOrderbook(order, signature, customOrder, 'TWAP');
   }
 
   /**
    * Get all TWAP orders from custom orderbook
    */
   getCustomTWAPOrders(): any[] {
-    return JSON.parse(localStorage.getItem('custom_twap_orders') || '[]');
+    return this.getCustomOrders('TWAP');
   }
 
   /**

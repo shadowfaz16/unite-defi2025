@@ -6,10 +6,12 @@ import { Button } from '../ui/button';
 import { useForm } from 'react-hook-form';
 import { useTradingStore } from '../../lib/stores/tradingStore';
 import { useWeb3 } from '../../lib/hooks/useWeb3';
+import { TokenSelector } from '../TokenSelector';
+import type { Token } from '../../lib/types';
 
 interface DCAFormData {
-  fromTokenAddress: string;
-  toTokenAddress: string;
+  fromToken: Token;
+  toToken: Token;
   amountPerOrder: string;
   intervalHours: number;
   totalOrders: number;
@@ -25,14 +27,14 @@ interface Props {
 
 export function DCACreator({ onClose }: Props) {
   const [isCreating, setIsCreating] = useState(false);
+  const [fromToken, setFromToken] = useState<Token | undefined>();
+  const [toToken, setToToken] = useState<Token | undefined>();
   const { address } = useWeb3();
   const { addStrategy } = useTradingStore();
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm<DCAFormData>({
     defaultValues: {
-      fromTokenAddress: '0xa0b86a33e6996051cb9a4c3e47e63b0b0e4f3c1a', // USDC
-      toTokenAddress: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
-      amountPerOrder: '100000000', // 100 USDC (6 decimals)
+      amountPerOrder: '100000000', // 100 USDT (6 decimals)
       intervalHours: 24,
       totalOrders: 30,
       slippageTolerance: 1,
@@ -43,29 +45,19 @@ export function DCACreator({ onClose }: Props) {
   const enableSmartConditions = watch('enableSmartConditions');
 
   const onSubmit = async (data: DCAFormData) => {
-    if (!address) return;
+    if (!address || !fromToken || !toToken) return;
     
     setIsCreating(true);
     try {
       const strategy = {
         id: `dca_${Date.now()}`,
         type: 'DCA' as const,
-        name: `DCA: ${data.amountPerOrder} USDC → WETH`,
-        description: `Buy WETH with ${data.amountPerOrder} USDC every ${data.intervalHours} hours for ${data.totalOrders} times`,
+        name: `DCA: ${fromToken.symbol} → ${toToken.symbol}`,
+        description: `Buy ${toToken.symbol} with ${data.amountPerOrder} ${fromToken.symbol} every ${data.intervalHours} hours for ${data.totalOrders} times`,
         isActive: true,
         parameters: {
-          fromToken: {
-            address: data.fromTokenAddress,
-            symbol: 'USDC',
-            name: 'USD Coin',
-            decimals: 6,
-          },
-          toToken: {
-            address: data.toTokenAddress,
-            symbol: 'WETH',
-            name: 'Wrapped Ether',
-            decimals: 18,
-          },
+          fromToken,
+          toToken,
           amountPerOrder: data.amountPerOrder,
           intervalHours: data.intervalHours,
           totalOrders: data.totalOrders,
@@ -95,34 +87,24 @@ export function DCACreator({ onClose }: Props) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Token Pair */}
+        {/* Token Pair Selection */}
         <div className="space-y-4">
           <h4 className="font-medium">Token Pair</h4>
           
-          <div>
-            <label className="block text-sm font-medium mb-2">From Token (Pay with)</label>
-            <select
-              {...register('fromTokenAddress', { required: 'From token is required' })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800"
-            >
-              <option value="0xa0b86a33e6996051cb9a4c3e47e63b0b0e4f3c1a">USDC</option>
-              <option value="0xdac17f958d2ee523a2206206994597c13d831ec7">USDT</option>
-              <option value="0x6b175474e89094c44da98b954eedeac495271d0f">DAI</option>
-            </select>
-          </div>
+          <TokenSelector
+            label="From Token (Pay with)"
+            selectedToken={fromToken}
+            onTokenSelect={setFromToken}
+            excludeTokens={toToken ? [toToken.address] : []}
+            showUSDTFirst={true}
+          />
 
-          <div>
-            <label className="block text-sm font-medium mb-2">To Token (Buy)</label>
-            <select
-              {...register('toTokenAddress', { required: 'To token is required' })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800"
-            >
-              <option value="0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2">WETH</option>
-              <option value="0x2260fac5e5542a773aa44fbcfedf7c193bc2c599">WBTC</option>
-              <option value="0x111111111117dc0aa78b770fa6a738034120c302">1INCH</option>
-              <option value="0x1f9840a85d5af5bf1d1762f925bdaddc4201f984">UNI</option>
-            </select>
-          </div>
+          <TokenSelector
+            label="To Token (Buy)"
+            selectedToken={toToken}
+            onTokenSelect={setToToken}
+            excludeTokens={fromToken ? [fromToken.address] : []}
+          />
         </div>
 
         {/* DCA Parameters */}
@@ -259,7 +241,7 @@ export function DCACreator({ onClose }: Props) {
       <div className="flex space-x-4">
         <Button
           type="submit"
-          disabled={isCreating || !address}
+          disabled={isCreating || !address || !fromToken || !toToken}
           className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
         >
           {isCreating ? 'Creating Strategy...' : 'Create DCA Strategy'}

@@ -7,7 +7,8 @@ import { TWAPCreator } from './strategies/TWAPCreator';
 import { DCACreator } from './strategies/DCACreator';
 import { OptionsCreator } from './strategies/OptionsCreator';
 import { ConcentratedLiquidityCreator } from './strategies/ConcentratedLiquidityCreator';
-import { TestStrategyPanel } from './TestStrategyPanel';
+import { GridTradingCreator } from './strategies/GridTradingCreator';
+import { ArbitrageCreator } from './strategies/ArbitrageCreator';
 import { useTradingStore } from '../lib/stores/tradingStore';
 
 export function StrategyPanel() {
@@ -18,39 +19,48 @@ export function StrategyPanel() {
 
   const strategyTypes = [
     {
-      id: 'twap',
-      name: 'TWAP Orders',
-      description: 'Time-Weighted Average Price splitting large orders over time',
-      icon: '⏱️',
-      color: 'from-blue-500 to-blue-600',
+      id: 'grid',
+      name: 'Grid Trading',
+      description: 'Automated buy low/sell high strategy with profit capture',
+      icon: '📊',
+      color: 'from-blue-500 to-indigo-600',
+      featured: true,
+    },
+    {
+      id: 'arbitrage',
+      name: 'Multi-Market Arbitrage',
+      description: 'Auto-detect and execute profitable price differences across markets',
+      icon: '⚡',
+      color: 'from-purple-500 to-pink-600',
+      featured: true,
     },
     {
       id: 'dca',
-      name: 'DCA Strategy',
-      description: 'Dollar Cost Averaging with smart price conditions',
+      name: 'Smart DCA',
+      description: 'Dollar Cost Averaging with intelligent price conditions',
       icon: '💰',
-      color: 'from-green-500 to-green-600',
+      color: 'from-green-500 to-emerald-600',
+    },
+    {
+      id: 'twap',
+      name: 'TWAP Orders',
+      description: 'Time-Weighted Average Price for large order execution',
+      icon: '⏱️',
+      color: 'from-cyan-500 to-blue-600',
     },
     {
       id: 'options',
       name: 'Synthetic Options',
-      description: 'Call/Put options using conditional limit orders',
+      description: 'Advanced call/put options using limit orders',
       icon: '🎯',
-      color: 'from-purple-500 to-purple-600',
+      color: 'from-violet-500 to-purple-600',
     },
     {
       id: 'liquidity',
       name: 'Concentrated Liquidity',
-      description: 'Uniswap V3-style liquidity provision with auto-rebalancing',
+      description: 'Uniswap V3-style automated liquidity management',
       icon: '🌊',
-      color: 'from-orange-500 to-orange-600',
-    },
-    {
-      id: 'test',
-      name: 'Test Strategy',
-      description: 'Test limit order creation with custom parameters (1 USDT -> 0.1 1INCH)',
-      icon: '🧪',
-      color: 'from-yellow-500 to-yellow-600',
+      color: 'from-orange-500 to-red-600',
     }
   ];
 
@@ -66,31 +76,76 @@ export function StrategyPanel() {
         </CardHeader>
         <CardContent>
           {!activeCreator ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {strategyTypes.map((strategy) => (
-                <div
-                  key={strategy.id}
-                  className="group cursor-pointer"
-                  onClick={() => setActiveCreator(strategy.id)}
-                >
-                  <div className={`p-6 rounded-xl bg-gradient-to-br ${strategy.color} hover:scale-105 transition-transform duration-200 text-white`}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="text-2xl mb-2">{strategy.icon}</div>
-                        <h3 className="font-semibold text-lg mb-2">{strategy.name}</h3>
-                        <p className="text-sm opacity-90">{strategy.description}</p>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        Create
-                      </Button>
-                    </div>
-                  </div>
+            <div className="space-y-6">
+              {/* Featured Strategies */}
+              <div>
+                <div className="flex items-center space-x-2 mb-4">
+                  <span className="text-lg font-semibold">🔥 Featured Strategies</span>
+                  <span className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-2 py-1 rounded text-xs font-medium">
+                    JUDGES PICK
+                  </span>
                 </div>
-              ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {strategyTypes.filter(s => s.featured).map((strategy) => (
+                    <div
+                      key={strategy.id}
+                      className="group cursor-pointer"
+                      onClick={() => setActiveCreator(strategy.id)}
+                    >
+                      <div className={`p-6 rounded-xl bg-gradient-to-br ${strategy.color} hover:scale-105 transition-transform duration-200 text-white relative overflow-hidden`}>
+                        <div className="absolute top-2 right-2">
+                          <span className="bg-white/20 px-2 py-1 rounded text-xs font-medium">
+                            ⭐ FEATURED
+                          </span>
+                        </div>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="text-2xl mb-2">{strategy.icon}</div>
+                            <h3 className="font-semibold text-lg mb-2">{strategy.name}</h3>
+                            <p className="text-sm opacity-90">{strategy.description}</p>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            className="opacity-0 group-hover:opacity-100 transition-opacity mt-8"
+                          >
+                            Create
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Other Strategies */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">📈 Classic Strategies</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {strategyTypes.filter(s => !s.featured).map((strategy) => (
+                    <div
+                      key={strategy.id}
+                      className="group cursor-pointer"
+                      onClick={() => setActiveCreator(strategy.id)}
+                    >
+                      <div className={`p-4 rounded-xl bg-gradient-to-br ${strategy.color} hover:scale-105 transition-transform duration-200 text-white`}>
+                        <div className="text-center">
+                          <div className="text-2xl mb-2">{strategy.icon}</div>
+                          <h3 className="font-semibold text-base mb-2">{strategy.name}</h3>
+                          <p className="text-xs opacity-90">{strategy.description}</p>
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            className="opacity-0 group-hover:opacity-100 transition-opacity mt-3 w-full"
+                          >
+                            Create
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             <div>
@@ -107,9 +162,10 @@ export function StrategyPanel() {
                 </Button>
               </div>
               
-              {activeCreator === 'test' && <TestStrategyPanel onTestComplete={() => setActiveCreator(null)} />}
-              {activeCreator === 'twap' && <TWAPCreator onClose={() => setActiveCreator(null)} />}
+              {activeCreator === 'grid' && <GridTradingCreator onClose={() => setActiveCreator(null)} />}
+              {activeCreator === 'arbitrage' && <ArbitrageCreator onClose={() => setActiveCreator(null)} />}
               {activeCreator === 'dca' && <DCACreator onClose={() => setActiveCreator(null)} />}
+              {activeCreator === 'twap' && <TWAPCreator onClose={() => setActiveCreator(null)} />}
               {activeCreator === 'options' && <OptionsCreator onClose={() => setActiveCreator(null)} />}
               {activeCreator === 'liquidity' && <ConcentratedLiquidityCreator onClose={() => setActiveCreator(null)} />}
             </div>

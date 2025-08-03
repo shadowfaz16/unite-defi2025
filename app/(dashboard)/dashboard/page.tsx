@@ -3,44 +3,45 @@
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import Link from "next/link";
-import { GasPriceCard } from "../../../components/GasPriceCard";
+// import { GasPriceCard } from "../../../components/GasPriceCard";
 
 export default function DashboardPage() {
   const quickActions = [
     {
-      title: "Create TWAP Order",
-      description: "Split large orders over time",
-      icon: "⏱️",
-      href: "/strategies?tab=twap",
-      color: "from-blue-500 to-cyan-500",
+      title: "Grid Trading",
+      description: "Automated buy low/sell high strategy",
+      icon: "📊",
+      href: "/strategies?tab=grid",
+      color: "from-blue-500 to-indigo-600",
+      featured: true,
     },
     {
-      title: "Setup DCA Strategy",
-      description: "Automate dollar-cost averaging",
+      title: "Multi-Market Arbitrage",
+      description: "Auto-detect profitable price differences",
+      icon: "⚡",
+      href: "/strategies?tab=arbitrage",
+      color: "from-purple-500 to-pink-600",
+      featured: true,
+    },
+    {
+      title: "Smart DCA Strategy",
+      description: "Intelligent dollar-cost averaging",
       icon: "💰",
       href: "/strategies?tab=dca",
       color: "from-green-500 to-emerald-500",
     },
     {
-      title: "Trade Options",
-      description: "Synthetic call/put options",
-      icon: "🎯",
-      href: "/strategies?tab=options",
-      color: "from-purple-500 to-violet-500",
-    },
-    {
-      title: "Manage Liquidity",
-      description: "Concentrated liquidity positions",
-      icon: "🌊",
-      href: "/strategies?tab=liquidity",
-      color: "from-orange-500 to-red-500",
+      title: "TWAP Orders",
+      description: "Time-weighted price execution",
+      icon: "⏱️",
+      href: "/strategies?tab=twap",
+      color: "from-cyan-500 to-blue-500",
     },
   ];
 
@@ -107,14 +108,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Gas Price Information */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
             Network Information
           </h2>
         </div>
         <GasPriceCard chainId={1} autoRefresh={false} refreshInterval={30} />
-      </div>
+      </div> */}
 
       {/* Quick Actions */}
       <div>
@@ -124,19 +125,28 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action, index) => (
             <Link key={index} href={action.href}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <Card className={`hover:shadow-lg transition-all duration-200 cursor-pointer ${
+                action.featured ? 'ring-2 ring-orange-200 dark:ring-orange-800 hover:scale-105' : 'hover:scale-102'
+              }`}>
                 <CardHeader>
                   <CardTitle>
-                    <div
-                      className={`w-12 h-12 mb-4 rounded-xl bg-gradient-to-r ${action.color} flex items-center justify-center text-2xl`}
-                    >
-                      <span className="text-2xl">{action.icon}</span>
+                    <div className="relative">
+                      {action.featured && (
+                        <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-medium z-10">
+                          🔥 HOT
+                        </div>
+                      )}
+                      <div
+                        className={`w-12 h-12 mb-4 rounded-xl bg-gradient-to-r ${action.color} flex items-center justify-center text-2xl`}
+                      >
+                        <span className="text-2xl">{action.icon}</span>
+                      </div>
                     </div>
                     <span className="text-lg font-semibold">{action.title}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-gray-600 dark:text-gray-400 text-xs">
                     {action.description}
                   </p>
                 </CardContent>
@@ -155,10 +165,10 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-4">
               {[
-                { type: "TWAP", pair: "ETH/USDC", amount: "2.5 ETH", status: "Active" },
-                { type: "DCA", pair: "BTC/USDC", amount: "$500", status: "Completed" },
-                { type: "Limit", pair: "LINK/ETH", amount: "100 LINK", status: "Pending" },
-                { type: "Options", pair: "ETH Call", amount: "1 Contract", status: "Active" },
+                { type: "Grid", pair: "ETH/USDT", amount: "0.5 ETH", status: "Active" },
+                { type: "Arbitrage", pair: "1INCH/USDT", amount: "1000 1INCH", status: "Active" },
+                { type: "DCA", pair: "BTC/USDT", amount: "$500", status: "Active" },
+                { type: "TWAP", pair: "WETH/USDT", amount: "2.5 WETH", status: "Completed" },
               ].map((order, index) => (
                 <div
                   key={index}
@@ -197,10 +207,10 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-4">
               {[
-                { strategy: "ETH DCA", performance: "+12.5%", status: "Running" },
-                { strategy: "BTC TWAP", performance: "+8.2%", status: "Running" },
-                { strategy: "LINK Options", performance: "-2.1%", status: "Paused" },
-                { strategy: "Concentrated LP", performance: "+15.7%", status: "Running" },
+                { strategy: "ETH Grid Trading", performance: "+18.3%", status: "Running" },
+                { strategy: "Multi-Market Arbitrage", performance: "+24.7%", status: "Running" },
+                { strategy: "BTC Smart DCA", performance: "+12.5%", status: "Running" },
+                { strategy: "WETH TWAP", performance: "+8.2%", status: "Completed" },
               ].map((strategy, index) => (
                 <div
                   key={index}

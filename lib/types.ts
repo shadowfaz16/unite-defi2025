@@ -41,6 +41,8 @@ export interface LimitOrder {
   createdAt: number;
   expiration?: number;
   strategyId?: string;
+  signature?: string;
+  orderHash?: string;
 }
 
 export interface TWAPOrder extends LimitOrder {
@@ -60,12 +62,25 @@ export interface DCAOrder {
   executedOrders: number;
   isActive: boolean;
   nextExecutionTime: number;
+  currentPrice?: number;
+  effectivePrice?: number;
+  orderHash?: string;
 }
 
 export interface StopLossOrder extends LimitOrder {
   triggerPrice: string;
   triggerPriceUSD: number;
   currentPrice: string;
+}
+
+export interface ArbitrageMarket {
+  id: string;
+  name: string;
+  type: 'DEX' | 'CEX' | 'LIMIT_ORDER';
+  endpoint?: string;
+  fee: number;
+  minSize: string;
+  enabled: boolean;
 }
 
 export interface PortfolioData {

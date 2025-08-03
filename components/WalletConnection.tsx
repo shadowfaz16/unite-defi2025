@@ -22,9 +22,8 @@ export function WalletConnection() {
   if (isConnected && address) {
     return (
       <div className="flex items-center space-x-3 min-w-[200px]">
-        <div className="hidden md:flex flex-col items-end text-sm">
+        <div className="hidden md:flex flex-col items-end text-xs">
           <span className="font-medium text-foreground">{formatAddress(address)}</span>
-          <span className="text-muted-foreground">{formatBalance(balance)}</span>
         </div>
         
         <div className="flex items-center space-x-2">

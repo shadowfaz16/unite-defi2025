@@ -26,6 +26,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { GasPriceCard } from "./GasPriceCard"
 
 // Trading Hub navigation data
 const data = {
@@ -94,6 +95,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavStrategies strategies={data.strategies} />
       </SidebarContent>
       <SidebarFooter>
+        <GasPriceCard chainId={1} autoRefresh={false} refreshInterval={30} />
         <NavUser />
       </SidebarFooter>
       <SidebarRail />

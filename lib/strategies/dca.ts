@@ -1,7 +1,7 @@
-import { LimitOrder, MakerTraits, Address, randBigInt, Api } from "@1inch/limit-order-sdk";
+import { LimitOrder } from "@1inch/limit-order-sdk";
 import { ethers } from "ethers";
+import { BaseStrategy } from './base-strategy';
 import type { DCAOrder, Token, TradingStrategy } from '../types';
-import { ONEINCH_API_KEY } from '../constants';
 
 export interface DCAConfig {
   fromToken: Token;
@@ -13,62 +13,9 @@ export interface DCAConfig {
   slippageTolerance: number;
 }
 
-export class DCAStrategy {
-  private api: Api;
-  private signer: ethers.Wallet;
-
+export class DCAStrategy extends BaseStrategy {
   constructor(signer: ethers.Wallet, networkId: number = 1) {
-    this.signer = signer;
-    
-    // Create custom HTTP connector like in our working solution
-    const httpConnector = {
-      async request(config: any) {
-        try {
-          const response = await fetch(config.url, {
-            method: config.method || 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${ONEINCH_API_KEY}`,
-              'X-API-Key': ONEINCH_API_KEY,
-              ...config.headers,
-            },
-            body: config.data ? JSON.stringify(config.data) : undefined,
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          
-          return await response.json();
-        } catch (error) {
-          console.error("HTTP request failed:", error);
-          throw error;
-        }
-      },
-      
-      async post(url: string, data: any, config: any = {}) {
-        return this.request({
-          url,
-          method: 'POST',
-          data,
-          headers: config.headers
-        });
-      },
-      
-      async get(url: string, config: any = {}) {
-        return this.request({
-          url,
-          method: 'GET', 
-          headers: config.headers
-        });
-      }
-    };
-    
-    this.api = new Api({
-      authKey: ONEINCH_API_KEY,
-      networkId,
-      httpConnector,
-    });
+    super(signer, networkId);
   }
 
   /**
@@ -114,7 +61,7 @@ export class DCAStrategy {
   }
 
   /**
-   * Executes the next DCA order
+   * Executes the next DCA order using real-time price data
    */
   async executeNextDCAOrder(strategy: TradingStrategy): Promise<DCAOrder | null> {
     if (!strategy.isActive || strategy.type !== 'DCA') {
@@ -135,30 +82,33 @@ export class DCAStrategy {
     }
 
     try {
-      // Get current market price
+      // Get current market price using real 1inch API data
       const currentPrice = await this.getCurrentPrice(params.fromToken, params.toToken);
+      console.log(`📊 Current ${params.fromToken.symbol}/${params.toToken.symbol} price: ${currentPrice}`);
       
       const makingAmount = BigInt(params.amountPerOrder);
-      const baseRate = currentPrice * (1 - params.slippageTolerance / 100);
-      const takingAmount = makingAmount * BigInt(Math.floor(baseRate * 1e18)) / BigInt(1e18);
+      
+      // Calculate taking amount with slippage protection using base class method
+      const { takingAmount, effectivePrice } = this.calculateAmountsWithSlippage(
+        makingAmount,
+        currentPrice,
+        params.slippageTolerance,
+        params.fromToken.decimals,
+        params.toToken.decimals
+      );
 
-      const UINT_40_MAX = (BigInt(1) << BigInt(40)) - BigInt(1); // Fix to 40-bit and ES compatibility
-      const expiresIn = BigInt(params.intervalHours * 3600 + 1800); // Interval + 30 min buffer
-      const expiration = BigInt(Math.floor(Date.now() / 1000)) + expiresIn;
+      // Set expiration to interval + buffer time
+      const expirationTime = BigInt(Math.floor(Date.now() / 1000)) + BigInt(params.intervalHours * 3600 + 1800);
 
-      const makerTraits = MakerTraits.default()
-        .withExpiration(expiration)
-        .withNonce(randBigInt(UINT_40_MAX));
-
-      // Create limit order using the SDK (fix parameter structure)
-      const order = new LimitOrder({
-        makerAsset: new Address(params.fromToken.address),
-        takerAsset: new Address(params.toToken.address),
+      // Create and sign the limit order using base class method
+      const { order, signature, customOrder } = await this.createLimitOrder({
+        makerAsset: params.fromToken,
+        takerAsset: params.toToken,
         makingAmount,
         takingAmount,
-        maker: new Address(params.maker),
-        // Remove makerTraits from constructor, pass as second parameter
-      }, makerTraits);
+        maker: params.maker,
+        expiration: expirationTime,
+      });
 
       // Update strategy parameters
       params.executedOrders += 1;
@@ -170,8 +120,9 @@ export class DCAStrategy {
         strategy.isActive = false;
       }
 
+      // Create DCA order result
       const dcaOrder: DCAOrder = {
-        id: `dca_order_${strategy.id}_${params.executedOrders}`,
+        id: customOrder.id,
         fromToken: params.fromToken,
         toToken: params.toToken,
         amountPerOrder: params.amountPerOrder,
@@ -179,12 +130,16 @@ export class DCAStrategy {
         totalOrders: params.totalOrders,
         executedOrders: params.executedOrders,
         isActive: strategy.isActive,
-        nextExecutionTime: params.nextExecutionTime
+        nextExecutionTime: params.nextExecutionTime,
+        currentPrice,
+        effectivePrice,
+        orderHash: customOrder.orderHash
       };
 
-      // Submit to custom orderbook
-      await this.submitToCustomOrderbook(order, dcaOrder);
+      // Submit to custom orderbook (not official 1inch API per hackathon rules)
+      await this.submitToCustomOrderbook(order, signature, customOrder, 'DCA');
 
+      console.log(`✅ DCA order ${dcaOrder.id} created and submitted to custom orderbook`);
       return dcaOrder;
     } catch (error) {
       console.error('Error executing DCA order:', error);
@@ -251,44 +206,10 @@ export class DCAStrategy {
   }
 
   /**
-   * Get current market price for token pair
+   * Get all DCA orders from custom orderbook
    */
-  private async getCurrentPrice(fromToken: Token, toToken: Token): Promise<number> {
-    // This would integrate with 1inch Spot Price API
-    // For now, return a mock price with some variation
-    const basePrice = 0.0001;
-    const variation = (Math.random() - 0.5) * 0.0002; // +/- 0.01% variation
-    return basePrice + variation;
-  }
-
-  /**
-   * Submit to custom orderbook
-   */
-  private async submitToCustomOrderbook(order: LimitOrder, dcaOrder: DCAOrder): Promise<void> {
-    const typedData = order.getTypedData(1); // Pass networkId parameter
-    const signature = await this.signer.signTypedData(
-      typedData.domain,
-      { Order: typedData.types.Order },
-      typedData.message
-    );
-
-    // Store in custom orderbook
-    if (typeof window !== 'undefined') {
-      const customOrders = JSON.parse(localStorage.getItem('custom_dca_orders') || '[]');
-      customOrders.push({
-        order: {
-          makerAsset: order.makerAsset.toString(),
-          takerAsset: order.takerAsset.toString(),
-          makingAmount: order.makingAmount.toString(),
-          takingAmount: order.takingAmount.toString(),
-          maker: order.maker.toString(),
-        },
-        signature,
-        dcaOrder,
-        timestamp: Date.now()
-      });
-      localStorage.setItem('custom_dca_orders', JSON.stringify(customOrders));
-    }
+  getCustomDCAOrders(): any[] {
+    return this.getCustomOrders('DCA');
   }
 
   /**
@@ -327,10 +248,5 @@ export class DCAStrategy {
     strategy.updatedAt = Date.now();
   }
 
-  /**
-   * Get all DCA orders from custom orderbook
-   */
-  getCustomDCAOrders(): any[] {
-    return JSON.parse(localStorage.getItem('custom_dca_orders') || '[]');
-  }
+
 }

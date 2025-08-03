@@ -13,12 +13,9 @@ export function NavHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigation = [
-    { name: 'Home', href: '/', icon: '🏠' },
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },
-    { name: 'Strategies', href: '/strategies', icon: '🎯' },
-    { name: 'Orders', href: '/orders', icon: '📋' },
     { name: 'Portfolio', href: '/portfolio', icon: '💼' },
-    { name: 'Demo', href: '/demo', icon: '🎬' },
+    { name: 'Strategies', href: '/strategies', icon: '🎯' },
   ];
 
   return (
@@ -58,8 +55,8 @@ export function NavHeader() {
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center space-x-2">
-            <ThemeToggle />
             <WalletConnection />
+            <ThemeToggle />
           </div>
 
           {/* Mobile menu button */}

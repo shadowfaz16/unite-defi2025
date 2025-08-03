@@ -129,13 +129,13 @@ export function GasPriceCard({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
+    <div className='p-2 bg-white dark:bg-gray-800 rounded-lg border border-border'>
+      <div>
+        <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg">⛽</span>
-              Gas Prices
+              Prices
             </div>
             <div className="flex items-center gap-2">
               {lastUpdated && (
@@ -158,14 +158,14 @@ export function GasPriceCard({
               </Button>
             </div>
           </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </div>
+      </div>
+      <div>
         <div className="space-y-3">
           {/* Base Fee */}
-          <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Base Fee</span>
-            <span className="text-sm font-bold text-gray-900 dark:text-white">
+          <div className="flex justify-between items-center p-1 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Base Fee</span>
+            <span className="text-xs font-bold text-gray-900 dark:text-white">
               {formatGwei(gasData.baseFee)} gwei
             </span>
           </div>
@@ -177,37 +177,31 @@ export function GasPriceCard({
             const category = getGasPriceCategory(type);
             
             return (
-              <div key={type} className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <div key={type} className="flex justify-between items-center p-1 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 <div className="flex items-center gap-3">
                   <Badge className={category.color}>
                     {category.label}
                   </Badge>
                   <div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    <div className="text-xs font-medium text-gray-900 dark:text-white">
                       {formatGwei(price.maxFeePerGas)} gwei
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Priority: {formatGwei(price.maxPriorityFeePerGas)} gwei
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    Est. Cost*
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="text-xs font-medium text-gray-900 dark:text-white">
                     ${((parseInt(price.maxFeePerGas) * 21000) / 1e18 * 2500).toFixed(3)}
                   </div>
                 </div>
               </div>
             );
           })}
-
+{/* 
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-3 pt-2 border-t">
             *Estimated cost for simple transfer at current ETH price
-          </div>
+          </div> */}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

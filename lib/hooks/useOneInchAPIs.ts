@@ -267,3 +267,61 @@ export function useOrderBook(
     refetchInterval: 15000, // Refetch every 15 seconds for live feel
   });
 }
+
+// Hook for user limit orders with fallback separation
+export function useUserLimitOrders(
+  chainId: number,
+  address: string | undefined,
+  page: number = 1,
+  limit: number = 10,
+  statuses: string = '1,2,3'
+) {
+  // Fallback wallet for demo purposes
+  const FALLBACK_WALLET = '0xfff94f585f6d0640c2284ba82159909c694ae2d7';
+  
+  return useQuery({
+    queryKey: ['userLimitOrders', chainId, address, page, limit, statuses],
+    queryFn: async () => {
+      const result = {
+        success: true,
+        userOrders: [] as any[],
+        fallbackOrders: [] as any[],
+        isUsingFallback: false,
+        error: null as string | null
+      };
+
+      // Always fetch fallback orders for demo
+      try {
+        const fallbackResponse = await OneInchAPI.getUserLimitOrders(chainId, FALLBACK_WALLET, page, limit, statuses);
+        if (fallbackResponse.success) {
+          result.fallbackOrders = fallbackResponse.data;
+        }
+      } catch (error) {
+        console.warn('Failed to fetch fallback orders:', error);
+      }
+
+      // Fetch user orders if address is provided
+      if (address && address !== FALLBACK_WALLET) {
+        try {
+          const userResponse = await OneInchAPI.getUserLimitOrders(chainId, address, page, limit, statuses);
+          if (userResponse.success) {
+            result.userOrders = userResponse.data;
+          } else {
+            result.error = userResponse.error || 'Failed to fetch user orders';
+          }
+        } catch (error) {
+          console.warn('Failed to fetch user orders:', error);
+          result.error = String(error);
+        }
+      }
+
+      // Determine if we're primarily using fallback
+      result.isUsingFallback = !address || result.userOrders.length === 0;
+
+      return result;
+    },
+    enabled: !!chainId,
+    staleTime: 30000, // User orders are relatively stable
+    refetchInterval: 60000, // Refetch every minute for status updates
+  });
+}

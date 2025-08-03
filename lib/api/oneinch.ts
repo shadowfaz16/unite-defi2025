@@ -359,6 +359,69 @@ export class OneInchAPI {
     }
   }
 
+  // Limit Orders API - Get user's limit orders
+  static async getUserLimitOrders(
+    chainId: number,
+    address: string,
+    page: number = 1,
+    limit: number = 10,
+    statuses: string = '1,2,3'
+  ): Promise<ApiResponse<GetLimitOrdersV4Response[]>> {
+    try {
+      console.log(`Fetching limit orders for address ${address} on chain ${chainId}...`);
+      console.log('API Key available:', !!ONEINCH_API_KEY);
+      console.log('API Base URL:', ONEINCH_API_BASE);
+      
+      // Use the same proxy approach as other APIs
+      const url = `${ONEINCH_API_BASE}/orderbook/v4.0/${chainId}/address/${address}`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {
+          page,
+          limit,
+          statuses,
+          sortBy: 'createDateTime',
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making request to:', url);
+      console.log('Request config:', { ...config, headers: { ...config.headers, Authorization: '[REDACTED]' } });
+      
+      const response = await axios.get(url, config);
+      
+      console.log(`✅ User limit orders response received: ${response.data.length} orders`);
+      
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error('❌ Error fetching user limit orders:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'No limit orders found for this address';
+      }
+      
+      return { success: false, data: [], error: errorMessage };
+    }
+  }
+
   // Orderbook API - Get limit orders for a token pair
   static async getOrderBook(
     chainId: number,
