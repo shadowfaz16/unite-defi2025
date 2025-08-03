@@ -21,15 +21,15 @@ export function WalletConnection() {
 
   if (isConnected && address) {
     return (
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-3 min-w-[200px]">
         <div className="hidden md:flex flex-col items-end text-sm">
-          <span className="font-medium">{formatAddress(address)}</span>
-          <span className="text-gray-500">{formatBalance(balance)}</span>
+          <span className="font-medium text-foreground">{formatAddress(address)}</span>
+          <span className="text-muted-foreground">{formatBalance(balance)}</span>
         </div>
         
         <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-          <span className="text-sm font-medium">Connected</span>
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <span className="text-xs font-medium text-green-600 dark:text-green-400">Connected</span>
         </div>
         
         <ChainSwitcher />
@@ -38,7 +38,7 @@ export function WalletConnection() {
           variant="outline" 
           size="sm" 
           onClick={() => disconnect()}
-          className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+          className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 dark:text-red-400 dark:border-red-700 dark:hover:border-red-600"
         >
           Disconnect
         </Button>
@@ -47,11 +47,12 @@ export function WalletConnection() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-w-[140px]">
       <Button 
         onClick={() => setShowConnectors(!showConnectors)}
         disabled={isPending}
-        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
+        size="sm"
       >
         {isPending ? 'Connecting...' : 'Connect Wallet'}
       </Button>
@@ -62,13 +63,13 @@ export function WalletConnection() {
             className="fixed inset-0 z-40" 
             onClick={() => setShowConnectors(false)}
           />
-          <Card className="absolute right-0 top-full mt-2 w-64 z-50 shadow-xl border">
+          <Card className="absolute right-0 top-full mt-2 w-72 z-50 shadow-xl border-border bg-card">
             <CardContent className="p-4">
-              <h3 className="font-semibold mb-3">Connect Wallet</h3>
+              <h3 className="font-semibold mb-3 text-foreground">Connect Wallet</h3>
               <div className="space-y-2">
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-start hover:bg-accent"
                   onClick={() => {
                     connect('injected');
                     setShowConnectors(false);
@@ -80,7 +81,7 @@ export function WalletConnection() {
                 
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-start hover:bg-accent"
                   onClick={() => {
                     connect('walletconnect');
                     setShowConnectors(false);
@@ -92,7 +93,7 @@ export function WalletConnection() {
                 
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-start hover:bg-accent"
                   onClick={() => {
                     connect('coinbase');
                     setShowConnectors(false);
@@ -103,7 +104,7 @@ export function WalletConnection() {
                 </Button>
               </div>
               
-              <div className="mt-3 text-xs text-gray-500">
+              <div className="mt-3 text-xs text-muted-foreground">
                 Supported networks: Ethereum, Polygon, BSC, Avalanche, Arbitrum, Sepolia
               </div>
             </CardContent>

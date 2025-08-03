@@ -37,35 +37,35 @@ export function FooterSection() {
   ];
 
   return (
-    <div className="bg-slate-900 text-white">
+    <div className="bg-background text-foreground">
       {/* Hackathon compliance */}
-      <div className="py-16 border-b border-slate-800">
+      <div className="py-16 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-12">
-            <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+            <Badge className="bg-green-500/10 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800">
               🏆 Hackathon Compliance
             </Badge>
-            <h2 className="text-3xl font-bold">
+            <h2 className="text-3xl font-bold text-foreground">
               Full Requirements Met
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               Comprehensive solution addressing both hackathon tracks with complete requirement fulfillment
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {hackathonCompliance.map((track, index) => (
-              <Card key={index} className="bg-slate-800/50 border-slate-700">
+              <Card key={index} className="bg-card border-border">
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-3 mb-4">
                     <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${track.color}`}></div>
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-foreground">
                       {track.track}
                     </h3>
                   </div>
                   <ul className="space-y-2">
                     {track.requirements.map((req, idx) => (
-                      <li key={idx} className="text-sm text-slate-300">
+                      <li key={idx} className="text-sm text-muted-foreground">
                         {req}
                       </li>
                     ))}
@@ -78,20 +78,20 @@ export function FooterSection() {
       </div>
 
       {/* Technology stack */}
-      <div className="py-16 border-b border-slate-800">
+      <div className="py-16 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-12">
-            <h3 className="text-2xl font-bold">Built With Modern Technology</h3>
-            <p className="text-slate-400">
+            <h3 className="text-2xl font-bold text-foreground">Built With Modern Technology</h3>
+            <p className="text-muted-foreground">
               Production-grade technology stack for institutional-level performance
             </p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-3">
             {technologies.map((tech, index) => (
-              <Badge key={index} variant="outline" className="border-slate-600 text-slate-300">
+              <Badge key={index} variant="outline" className="border-border text-foreground">
                 {tech.name}
-                <span className="ml-2 text-xs text-slate-500">({tech.category})</span>
+                <span className="ml-2 text-xs text-muted-foreground">({tech.category})</span>
               </Badge>
             ))}
           </div>
@@ -104,34 +104,34 @@ export function FooterSection() {
           <div className="text-center space-y-6">
             <div className="flex justify-center space-x-8">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-400">6+</div>
-                <div className="text-slate-500 text-sm">1inch APIs</div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">6+</div>
+                <div className="text-muted-foreground text-sm">1inch APIs</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">4</div>
-                <div className="text-slate-500 text-sm">Strategies</div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">4</div>
+                <div className="text-muted-foreground text-sm">Strategies</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-400">5+</div>
-                <div className="text-slate-500 text-sm">Chains</div>
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">5+</div>
+                <div className="text-muted-foreground text-sm">Chains</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-orange-400">100%</div>
-                <div className="text-slate-500 text-sm">MEV Protected</div>
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">100%</div>
+                <div className="text-muted-foreground text-sm">MEV Protected</div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
                 1inch Advanced Trading Hub
               </h2>
-              <p className="text-slate-400 max-w-2xl mx-auto">
+              <p className="text-muted-foreground max-w-2xl mx-auto">
                 The most comprehensive DeFi trading platform with advanced strategies, 
                 extensive 1inch API integration, and institutional-grade features.
               </p>
             </div>
 
-            <div className="flex justify-center space-x-4 text-sm text-slate-500">
+            <div className="flex justify-center space-x-4 text-sm text-muted-foreground">
               <span>🏆 1inch Unite DeFi 2025 Hackathon</span>
               <span>•</span>
               <span>Built with ❤️ for DeFi innovation</span>

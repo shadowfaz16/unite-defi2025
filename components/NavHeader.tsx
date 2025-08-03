@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { WalletConnection } from './WalletConnection';
 import { Button } from './ui/button';
+import { ThemeToggle } from './ui/theme-toggle';
+import { Menu, X } from 'lucide-react';
+import { useState } from 'react';
 
 export function NavHeader() {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigation = [
     { name: 'Home', href: '/', icon: '🏠' },
@@ -14,23 +18,27 @@ export function NavHeader() {
     { name: 'Strategies', href: '/strategies', icon: '🎯' },
     { name: 'Orders', href: '/orders', icon: '📋' },
     { name: 'Portfolio', href: '/portfolio', icon: '💼' },
-    // { name: 'Analytics', href: '/analytics', icon: '📈' },
     { name: 'Demo', href: '/demo', icon: '🎬' },
   ];
 
   return (
-    <header className="border-b border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
-        <div className="flex justify-between items-center">
+    <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3 group">
-            <span className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-              1inch Trading Hub
-            </span>
-          </Link>
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex items-center space-x-3 group">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
+                <span className="text-white font-bold text-sm">1</span>
+              </div>
+              <span className="text-xl font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                1inch Trading Hub
+              </span>
+            </Link>
+          </div>
 
-          {/* Navigation */}
-          <nav className="hidden md:flex space-x-1">
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center space-x-1">
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -38,50 +46,67 @@ export function NavHeader() {
                   <Button
                     variant={isActive ? "default" : "ghost"}
                     size="sm"
-                    className={`flex items-center space-x-2 transition-all duration-200 ${
-                      isActive 
-                        ? "bg-blue-500 text-white hover:bg-blue-600 shadow-md" 
-                        : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                    }`}
+                    className={`flex items-center space-x-2 px-4 py-2 transition-all duration-200 hover:scale-105`}
                   >
-                    <span>{item.icon}</span>
-                    <span>{item.name}</span>
+                    <span className="text-sm">{item.icon}</span>
+                    <span className="font-medium">{item.name}</span>
                   </Button>
                 </Link>
               );
             })}
           </nav>
 
-          {/* Wallet Connection */}
-          <div className="flex items-center">
+          {/* Desktop Actions */}
+          <div className="hidden lg:flex items-center space-x-2">
+            <ThemeToggle />
             <WalletConnection />
+          </div>
+
+          {/* Mobile menu button */}
+          <div className="lg:hidden flex items-center space-x-2">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2"
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </Button>
           </div>
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden pb-4">
-          <div className="flex flex-wrap gap-2">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link key={item.name} href={item.href}>
-                  <Button
-                    variant={isActive ? "default" : "outline"}
-                    size="sm"
-                    className={`flex items-center space-x-1 ${
-                      isActive 
-                        ? "bg-blue-500 text-white" 
-                        : "text-gray-600 dark:text-gray-300"
-                    }`}
-                  >
-                    <span className="text-xs">{item.icon}</span>
-                    <span className="text-xs">{item.name}</span>
-                  </Button>
-                </Link>
-              );
-            })}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-border py-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="space-y-2">
+              {navigation.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link key={item.name} href={item.href} onClick={() => setMobileMenuOpen(false)}>
+                    <Button
+                      variant={isActive ? "default" : "ghost"}
+                      size="sm"
+                      className={`w-full justify-start flex items-center space-x-3 px-4 py-3 transition-all duration-200 hover:scale-[1.02]`}
+                    >
+                      <span className="text-base">{item.icon}</span>
+                      <span className="font-medium">{item.name}</span>
+                    </Button>
+                  </Link>
+                );
+              })}
+              
+              {/* Mobile Wallet Connection */}
+              <div className="pt-4 border-t border-border">
+                <WalletConnection />
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </header>
   );

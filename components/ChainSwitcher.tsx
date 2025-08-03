@@ -60,7 +60,7 @@ export function ChainSwitcher() {
             className="fixed inset-0 z-40" 
             onClick={() => setShowChains(false)}
           />
-          <Card className="absolute right-0 top-full mt-2 w-56 z-50 shadow-xl border">
+          <Card className="absolute right-0 top-full mt-2 w-56 z-50 shadow-xl border-border bg-card">
             <CardContent className="p-2">
               <div className="space-y-1">
                 {supportedChains.map((supportedChain) => {
@@ -89,7 +89,7 @@ export function ChainSwitcher() {
                 })}
               </div>
               
-              <div className="mt-3 pt-2 border-t text-xs text-gray-500">
+              <div className="mt-3 pt-2 border-t border-border text-xs text-muted-foreground">
                 {isSwitchingChain ? 'Switching...' : 'Select network'}
               </div>
             </CardContent>

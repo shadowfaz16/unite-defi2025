@@ -44,23 +44,21 @@ export function HeroSection() {
   }, [features.length]);
 
   return (
-    <div className="relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-cyan-500/10 animate-pulse"></div>
-      </div>
+    <div className="relative overflow-hidden bg-background">
+      {/* Subtle background pattern */}
+      {/* <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-transparent to-purple-50/50 dark:from-blue-950/20 dark:via-transparent dark:to-purple-950/20"></div> */}
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
         <div className="text-center space-y-8">
           {/* Badges */}
           <div className="flex flex-wrap justify-center gap-3">
-            <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+            <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
               🏆 1inch Unite DeFi 2025
             </Badge>
-            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+            <Badge className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
               🎯 Both Tracks Addressed
             </Badge>
-            <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+            <Badge className="bg-green-500/10 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800">
               ✅ Production Ready
             </Badge>
           </div>
@@ -68,13 +66,13 @@ export function HeroSection() {
           {/* Main heading */}
           <div className="space-y-6">
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight">
-              <span className="block text-white">1inch Advanced</span>
-              <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              <span className="block text-foreground">1inch Advanced</span>
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
                 Trading Hub
               </span>
             </h1>
             
-            <p className="max-w-3xl mx-auto text-xl sm:text-2xl text-slate-300 leading-relaxed">
+            <p className="max-w-3xl mx-auto text-xl sm:text-2xl text-muted-foreground leading-relaxed">
               The most comprehensive DeFi trading platform with advanced strategies, 
               extensive 1inch API integration, and institutional-grade features.
             </p>
@@ -82,16 +80,16 @@ export function HeroSection() {
 
           {/* Feature showcase */}
           <div className="flex justify-center">
-            <Card className="bg-white/10 backdrop-blur-md border-white/20 p-6">
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 p-6 shadow-lg">
               <CardContent className="flex items-center space-x-4 p-0">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${features[currentFeature].color} flex items-center justify-center text-2xl`}>
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${features[currentFeature].color} flex items-center justify-center text-2xl shadow-lg`}>
                   {features[currentFeature].icon}
                 </div>
                 <div className="text-left">
-                  <h3 className="text-lg font-semibold text-white">
+                  <h3 className="text-lg font-semibold text-foreground">
                     {features[currentFeature].title}
                   </h3>
-                  <p className="text-slate-300">
+                  <p className="text-muted-foreground">
                     {features[currentFeature].description}
                   </p>
                 </div>
@@ -104,7 +102,7 @@ export function HeroSection() {
             <Link href="/dashboard">
               <Button 
                 size="lg"
-                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg"
               >
                 <span className="mr-2">🚀</span>
                 Launch Trading Hub
@@ -114,7 +112,7 @@ export function HeroSection() {
               <Button 
                 variant="outline" 
                 size="lg"
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md"
+                className="border-border text-foreground hover:bg-accent"
               >
                 <span className="mr-2">🎬</span>
                 View Demo
@@ -125,27 +123,24 @@ export function HeroSection() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto pt-12">
             <div className="text-center">
-              <div className="text-3xl font-bold text-white">6+</div>
-              <div className="text-slate-400">1inch APIs</div>
+              <div className="text-3xl font-bold text-foreground">6+</div>
+              <div className="text-muted-foreground">1inch APIs</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-white">4</div>
-              <div className="text-slate-400">Advanced Strategies</div>
+              <div className="text-3xl font-bold text-foreground">4</div>
+              <div className="text-muted-foreground">Advanced Strategies</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-white">5+</div>
-              <div className="text-slate-400">Supported Chains</div>
+              <div className="text-3xl font-bold text-foreground">5+</div>
+              <div className="text-muted-foreground">Supported Chains</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-white">100%</div>
-              <div className="text-slate-400">MEV Protected</div>
+              <div className="text-3xl font-bold text-foreground">100%</div>
+              <div className="text-muted-foreground">MEV Protected</div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Bottom gradient */}
-      <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-slate-50 to-transparent dark:from-slate-900"></div>
     </div>
   );
 }

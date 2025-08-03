@@ -85,17 +85,17 @@ export function DemoSection() {
   ];
 
   return (
-    <div className="py-24 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+    <div className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="text-center space-y-4 mb-16">
-          <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+          <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
             🎬 Live Demo Scenarios
           </Badge>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
             See It In Action
           </h2>
-          <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Interactive demonstrations of advanced trading strategies with real performance metrics
           </p>
         </div>
@@ -110,8 +110,8 @@ export function DemoSection() {
               className={`${
                 activeDemo === index 
                   ? `bg-gradient-to-r ${demo.color} text-white border-0` 
-                  : "bg-white/10 border-white/20 text-white hover:bg-white/20"
-              } backdrop-blur-md`}
+                  : "border-border text-foreground hover:bg-accent"
+              }`}
             >
               <span className="mr-2">{demo.icon}</span>
               {demo.title}
@@ -122,31 +122,31 @@ export function DemoSection() {
         {/* Active demo content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Demo description */}
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
+          <Card className="bg-card border-border shadow-lg">
             <CardHeader>
               <div className="flex items-center space-x-3">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${demoScenarios[activeDemo].color} flex items-center justify-center text-2xl`}>
                   {demoScenarios[activeDemo].icon}
                 </div>
                 <div>
-                  <CardTitle className="text-white text-xl">
+                  <CardTitle className="text-foreground text-xl">
                     {demoScenarios[activeDemo].title}
                   </CardTitle>
-                  <p className="text-slate-300 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     {demoScenarios[activeDemo].description}
                   </p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <h4 className="text-white font-medium">Demo Flow:</h4>
+              <h4 className="text-foreground font-medium">Demo Flow:</h4>
               <ol className="space-y-2">
                 {demoScenarios[activeDemo].steps.map((step, idx) => (
                   <li key={idx} className="flex items-start space-x-3">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold mt-0.5">
                       {idx + 1}
                     </div>
-                    <span className="text-slate-300 text-sm">{step}</span>
+                    <span className="text-muted-foreground text-sm">{step}</span>
                   </li>
                 ))}
               </ol>
@@ -154,16 +154,16 @@ export function DemoSection() {
           </Card>
 
           {/* Demo metrics */}
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
+          <Card className="bg-card border-border shadow-lg">
             <CardHeader>
-              <CardTitle className="text-white">Performance Metrics</CardTitle>
+              <CardTitle className="text-foreground">Performance Metrics</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 {Object.entries(demoScenarios[activeDemo].metrics).map(([key, value]) => (
-                  <div key={key} className="text-center p-4 rounded-lg bg-white/5">
-                    <div className="text-2xl font-bold text-white">{value}</div>
-                    <div className="text-slate-400 text-sm">{key}</div>
+                  <div key={key} className="text-center p-4 rounded-lg bg-muted/50">
+                    <div className="text-2xl font-bold text-foreground">{value}</div>
+                    <div className="text-muted-foreground text-sm">{key}</div>
                   </div>
                 ))}
               </div>
@@ -171,7 +171,7 @@ export function DemoSection() {
               <div className="mt-6 space-y-3">
                 <Link href="/strategies">
                   <Button 
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0"
                   >
                     <span className="mr-2">🚀</span>
                     Try This Strategy
@@ -180,7 +180,7 @@ export function DemoSection() {
                 <Link href="/analytics">
                   <Button 
                     variant="outline"
-                    className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+                    className="w-full border-border text-foreground hover:bg-accent"
                   >
                     <span className="mr-2">📊</span>
                     View Detailed Analytics
@@ -193,18 +193,18 @@ export function DemoSection() {
 
         {/* Bottom CTA */}
         <div className="text-center mt-16">
-          <Card className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-md border-blue-500/30 max-w-2xl mx-auto">
+          <Card className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-200 dark:border-blue-800 max-w-2xl mx-auto">
             <CardContent className="p-8">
-              <h3 className="text-2xl font-bold text-white mb-4">
+              <h3 className="text-2xl font-bold text-foreground mb-4">
                 Ready to Experience Advanced DeFi Trading?
               </h3>
-              <p className="text-slate-300 mb-6">
+              <p className="text-muted-foreground mb-6">
                 Connect your wallet and explore the most comprehensive trading platform in DeFi
               </p>
               <Link href="/dashboard">
                 <Button 
                   size="lg"
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0"
                 >
                   <span className="mr-2">🔗</span>
                   Launch Trading Hub

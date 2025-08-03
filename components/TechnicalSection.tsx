@@ -70,40 +70,40 @@ export function TechnicalSection() {
   ];
 
   return (
-    <div className="py-24 bg-white dark:bg-slate-800">
+    <div className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Technical Excellence */}
         <div className="text-center space-y-4 mb-16">
-          <Badge className="bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700">
+          <Badge className="bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700">
             ⚡ Technical Excellence
           </Badge>
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
             Built for Production
           </h2>
-          <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Professional-grade architecture with cutting-edge technology stack and comprehensive feature set
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
           {technicalHighlights.map((highlight, index) => (
-            <Card key={index} className="border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow duration-300">
+            <Card key={index} className="border-border bg-card hover:shadow-lg transition-shadow duration-300">
               <CardHeader>
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg flex items-center justify-center text-xl">
+                  <div className="w-10 h-10 bg-gradient-to-r from-muted to-muted/80 rounded-lg flex items-center justify-center text-xl">
                     {highlight.icon}
                   </div>
-                  <CardTitle className="text-lg">{highlight.title}</CardTitle>
+                  <CardTitle className="text-lg text-foreground">{highlight.title}</CardTitle>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
+                <p className="text-muted-foreground text-sm">
                   {highlight.description}
                 </p>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
                   {highlight.details.map((detail, idx) => (
-                    <li key={idx} className="flex items-center space-x-2 text-sm">
+                    <li key={idx} className="flex items-center space-x-2 text-sm text-muted-foreground">
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                       <span>{detail}</span>
                     </li>
@@ -116,17 +116,17 @@ export function TechnicalSection() {
 
         {/* Competitive Advantages */}
         <div className="text-center space-y-4 mb-12">
-          <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800">
+          <Badge className="bg-green-500/10 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800">
             🏆 Competitive Advantages
           </Badge>
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
             Why This Project Wins
           </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {competitiveAdvantages.map((advantage, index) => (
-            <Card key={index} className="text-center border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+            <Card key={index} className="text-center border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
               <CardHeader>
                 <CardTitle className="text-lg text-green-800 dark:text-green-200">
                   {advantage.title}
