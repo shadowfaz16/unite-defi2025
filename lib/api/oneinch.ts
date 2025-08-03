@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ONEINCH_API_BASE, ONEINCH_API_KEY } from '../constants';
-import type { Token, TokenBalance, PriceData, SwapQuote, ApiResponse, GasPriceData, ChartAPIResponse, ChartData } from '../types';
+import type { Token, TokenBalance, PriceData, SwapQuote, ApiResponse, GasPriceData, ChartAPIResponse, ChartData, TransactionHistoryResponse, GetLimitOrdersV4Response, OrderBookData } from '../types';
 
 const api = axios.create({
   baseURL: ONEINCH_API_BASE,
@@ -297,6 +297,161 @@ export class OneInchAPI {
       }
       
       return { success: false, data: [], error: errorMessage };
+    }
+  }
+
+  // Transaction History API - Get wallet transaction history
+  static async getTransactionHistory(
+    address: string,
+    chainId: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<TransactionHistoryResponse>> {
+    try {
+      console.log(`Fetching transaction history for ${address} on chain ${chainId}...`);
+      console.log('API Key available:', !!ONEINCH_API_KEY);
+      console.log('API Base URL:', ONEINCH_API_BASE);
+      
+      // Use the same proxy approach as gas price and chart APIs
+      const url = `${ONEINCH_API_BASE}/history/v2.0/history/${address}/events`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {
+          limit: limit,
+          chainId: chainId,
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making request to:', url);
+      console.log('Request config:', { ...config, headers: { ...config.headers, Authorization: '[REDACTED]' } });
+      
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Transaction history response received:', response.data);
+      
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error('❌ Error fetching transaction history:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Transaction history not found for this address';
+      }
+      
+      return { success: false, data: { items: [], cache_counter: 0 }, error: errorMessage };
+    }
+  }
+
+  // Orderbook API - Get limit orders for a token pair
+  static async getOrderBook(
+    chainId: number,
+    makerAsset: string,
+    takerAsset: string,
+    limit: number = 20
+  ): Promise<ApiResponse<OrderBookData>> {
+    try {
+      console.log(`Fetching orderbook for ${makerAsset}/${takerAsset} on chain ${chainId}...`);
+      console.log('API Key available:', !!ONEINCH_API_KEY);
+      console.log('API Base URL:', ONEINCH_API_BASE);
+      
+      // Use the same proxy approach as other APIs
+      const url = `${ONEINCH_API_BASE}/orderbook/v4.0/${chainId}/all`;
+      
+      // Fetch buy orders: people offering takerAsset (USDT) to get makerAsset (WETH)
+      const buyConfig = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {
+          page: 1,
+          limit: limit,
+          statuses: '1,2,3',
+          sortBy: 'createDateTime',
+          makerAsset: takerAsset, // USDT - what they're offering
+          takerAsset: makerAsset, // WETH - what they want
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      // Fetch sell orders: people offering makerAsset (WETH) to get takerAsset (USDT) 
+      const sellConfig = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {
+          page: 1,
+          limit: limit,
+          statuses: '1,2,3',
+          sortBy: 'createDateTime',
+          makerAsset: makerAsset, // WETH - what they're offering
+          takerAsset: takerAsset, // USDT - what they want
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making requests to:', url);
+      console.log('Buy config:', { ...buyConfig, headers: { ...buyConfig.headers, Authorization: '[REDACTED]' } });
+      console.log('Sell config:', { ...sellConfig, headers: { ...sellConfig.headers, Authorization: '[REDACTED]' } });
+      
+      // Fetch both buy and sell orders in parallel
+      const [buyResponse, sellResponse] = await Promise.all([
+        axios.get(url, buyConfig),
+        axios.get(url, sellConfig)
+      ]);
+      
+      console.log('✅ Orderbook responses received');
+      console.log('Buy orders:', buyResponse.data.length);
+      console.log('Sell orders:', sellResponse.data.length);
+      
+      const orderBookData: OrderBookData = {
+        buy: buyResponse.data || [],
+        sell: sellResponse.data || []
+      };
+
+      return { success: true, data: orderBookData };
+    } catch (error: any) {
+      console.error('❌ Error fetching orderbook:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Orderbook data not found for this token pair';
+      }
+      
+      return { success: false, data: { buy: [], sell: [] }, error: errorMessage };
     }
   }
 }

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OneInchAPI } from '../api/oneinch';
-import type { TokenBalance, PriceData } from '../types';
+import type { TokenBalance, PriceData, TransactionHistoryResponse, OrderBookData } from '../types';
 
 // Custom hook for wallet balances
 export function useWalletBalances(chainId: number, address: string | undefined) {
@@ -234,5 +234,36 @@ export function useCrossChainPortfolio(
     enabled: !!address,
     staleTime: 60000, // Cross-chain data updates less frequently
     refetchInterval: 60000,
+  });
+}
+
+// Hook for transaction history
+export function useTransactionHistory(
+  address: string | undefined,
+  chainId: number = 1,
+  limit: number = 10
+) {
+  return useQuery({
+    queryKey: ['transactionHistory', address, chainId, limit],
+    queryFn: () => OneInchAPI.getTransactionHistory(address!, chainId, limit),
+    enabled: !!address,
+    staleTime: 30000, // Transaction history is relatively stable
+    refetchInterval: 60000, // Refetch every minute for new transactions
+  });
+}
+
+// Hook for orderbook data
+export function useOrderBook(
+  chainId: number,
+  makerAsset: string | undefined,
+  takerAsset: string | undefined,
+  limit: number = 20
+) {
+  return useQuery({
+    queryKey: ['orderbook', chainId, makerAsset, takerAsset, limit],
+    queryFn: () => OneInchAPI.getOrderBook(chainId, makerAsset!, takerAsset!, limit),
+    enabled: !!(makerAsset && takerAsset),
+    staleTime: 10000, // Orderbook data updates frequently
+    refetchInterval: 15000, // Refetch every 15 seconds for live feel
   });
 }

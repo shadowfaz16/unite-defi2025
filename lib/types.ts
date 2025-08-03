@@ -119,3 +119,77 @@ export interface GasPriceData {
   high: GasPrice;
   instant: GasPrice;
 }
+
+export interface TokenAction {
+  chainId: string;
+  address: string;
+  standard: string;
+  fromAddress: string;
+  toAddress: string;
+  tokenId?: object;
+  amount: string;
+  direction: 'In' | 'Out' | 'Self' | 'On';
+}
+
+export interface TransactionDetails {
+  orderInBlock: number;
+  txHash: string;
+  chainId: number;
+  blockNumber: number;
+  blockTimeSec: number;
+  status: string;
+  type: string;
+  tokenActions: TokenAction[];
+  fromAddress: string;
+  toAddress: string;
+  nonce: number;
+  feeInSmallestNative: string;
+  meta?: object;
+}
+
+export interface TransactionHistoryEvent {
+  id: string;
+  address: string;
+  type: number;
+  rating: 'Reliable' | 'Scam';
+  timeMs: number;
+  direction?: 'in' | 'out';
+  details: TransactionDetails;
+  eventOrderInTransaction: number;
+}
+
+export interface TransactionHistoryResponse {
+  items: TransactionHistoryEvent[];
+  cache_counter: number;
+}
+
+export interface LimitOrderV4Data {
+  makerAsset: string;
+  takerAsset: string;
+  maker: string;
+  receiver?: string;
+  makingAmount: string;
+  takingAmount: string;
+  salt: string;
+  extension?: string;
+  makerTraits?: string;
+}
+
+export interface GetLimitOrdersV4Response {
+  signature: string;
+  orderHash: string;
+  createDateTime: string;
+  remainingMakerAmount: string;
+  makerBalance: string;
+  makerAllowance: string;
+  data: LimitOrderV4Data;
+  makerRate: string;
+  takerRate: string;
+  isMakerContract: boolean;
+  orderInvalidReason: string | null;
+}
+
+export interface OrderBookData {
+  buy: GetLimitOrdersV4Response[];
+  sell: GetLimitOrdersV4Response[];
+}

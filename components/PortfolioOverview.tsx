@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { useWeb3 } from '../lib/hooks/useWeb3';
 import { useWalletBalances, usePortfolioAnalytics, useCrossChainPortfolio } from '../lib/hooks/useOneInchAPIs';
+import { TransactionHistory } from './TransactionHistory';
 
 export function PortfolioOverview() {
   const { address, chain } = useWeb3();
@@ -206,37 +207,8 @@ export function PortfolioOverview() {
         </Card>
       </div>
 
-      {/* Performance Analytics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>📊</span>
-            <span>Performance Analytics</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                +{analytics?.pnl7d.toFixed(2) || '0.00'}%
-              </div>
-              <div className="text-sm text-gray-500">7-Day Return</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                +{analytics?.pnl30d.toFixed(2) || '0.00'}%
-              </div>
-              <div className="text-sm text-gray-500">30-Day Return</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {analytics?.topPerformingAsset || 'N/A'}
-              </div>
-              <div className="text-sm text-gray-500">Top Performer</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Transaction History */}
+      <TransactionHistory limit={10} />
     </div>
   );
 }

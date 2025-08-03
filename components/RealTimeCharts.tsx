@@ -7,6 +7,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ChartData } from '../lib/types';
 import { OneInchAPI } from '../lib/api/oneinch';
 import { TOKEN_ADDRESSES } from '../lib/constants';
+import { RealOrderBook } from './RealOrderBook';
 
 // Available tokens to compare with USDT
 const AVAILABLE_TOKENS = [
@@ -17,28 +18,70 @@ const AVAILABLE_TOKENS = [
     emoji: '💎'
   },
   {
-    address: '0x111111111117dC0aa78b770fA6A738034120C302',
-    symbol: '1INCH',
-    name: '1inch Token',
-    emoji: '🦄'
-  },
-  {
     address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
     symbol: 'WBTC',
     name: 'Wrapped Bitcoin',
     emoji: '₿'
   },
   {
-    address: '0xA0b86a33E6996051CB9a4c3e47E63b0b0e4f3c1a',
-    symbol: 'USDC',
-    name: 'USD Coin',
-    emoji: '💵'
+    address: '0x111111111117dC0aa78b770fA6A738034120C302',
+    symbol: '1INCH',
+    name: '1inch Token',
+    emoji: '🦄'
   },
   {
     address: '0x514910771AF9Ca656af840dff83E8264EcF986CA',
     symbol: 'LINK',
     name: 'Chainlink',
     emoji: '🔗'
+  },
+  {
+    address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
+    symbol: 'UNI',
+    name: 'Uniswap',
+    emoji: '🦄'
+  },
+  {
+    address: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
+    symbol: 'AAVE',
+    name: 'Aave Token',
+    emoji: '👻'
+  },
+  {
+    address: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2',
+    symbol: 'MKR',
+    name: 'Maker',
+    emoji: '🏗️'
+  },
+  {
+    address: '0xD533a949740bb3306d119CC777fa900bA034cd52',
+    symbol: 'CRV',
+    name: 'Curve DAO Token',
+    emoji: '🌙'
+  },
+  {
+    address: '0xc00e94Cb662C3520282E6f5717214004A7f26888',
+    symbol: 'COMP',
+    name: 'Compound',
+    emoji: '💰'
+  },
+  {
+    address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+    symbol: 'DAI',
+    name: 'Dai Stablecoin',
+    emoji: '💎'
+  },
+  {
+    address: '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e',
+    symbol: 'YFI',
+    name: 'yearn.finance',
+    emoji: '🔥'
+  },
+  {
+    address: '0x853d955aCEf822Db058eb8505911ED77F175b99e',
+    symbol: 'FRAX',
+    name: 'Frax',
+    emoji: '🧊'
   }
 ];
 
@@ -113,27 +156,31 @@ export function RealTimeCharts() {
           <CardTitle>Select Token to Compare with USDT</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="flex flex-wrap gap-3 justify-start">
             {AVAILABLE_TOKENS.map((token) => (
               <Button
                 key={token.address}
                 variant={selectedToken.address === token.address ? 'default' : 'outline'}
-                className="h-auto p-3 flex flex-col items-center space-y-1"
+                className="h-14 w-14 p-0 rounded-full flex flex-col items-center justify-center relative group hover:scale-105 transition-transform"
                 onClick={() => setSelectedToken(token)}
               >
-                <span className="text-lg">{token.emoji}</span>
-                <span className="text-sm font-medium">{token.symbol}</span>
-                <span className="text-xs text-muted-foreground truncate">
+                <span className="text-lg leading-none">{token.emoji}</span>
+                <span className="text-xs font-medium leading-none">{token.symbol}</span>
+                {/* Tooltip on hover */}
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                   {token.name}
-                </span>
+                </div>
               </Button>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Chart */}
-      <Card>
+      {/* Chart and Orderbook */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Chart */}
+        <div className="xl:col-span-2">
+          <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2">
@@ -294,6 +341,19 @@ export function RealTimeCharts() {
           )}
         </CardContent>
       </Card>
+        </div>
+
+        {/* Orderbook */}
+        <div className="xl:col-span-1">
+          <RealOrderBook
+            makerAsset={selectedToken.address}
+            takerAsset={USDT_ADDRESS}
+            makerSymbol={selectedToken.symbol}
+            takerSymbol="USDT"
+            chainId={1}
+          />
+        </div>
+      </div>
     </div>
   );
 }
