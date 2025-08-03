@@ -13,6 +13,7 @@ import {
   Zap,
   DollarSign,
   LineChart,
+  ArrowLeftRight,
 } from "lucide-react"
 
 import { NavSimple } from "@/components/nav-simple"
@@ -48,6 +49,11 @@ const data = {
       url: "/dashboard",
       icon: BarChart3,
       isActive: true,
+    },
+    {
+      title: "Swap",
+      url: "/swap",
+      icon: ArrowLeftRight,
     },
     {
       title: "Portfolio",

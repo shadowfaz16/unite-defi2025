@@ -153,16 +153,35 @@ export class OneInchAPI {
     fromAddress: string
   ): Promise<ApiResponse<SwapQuote>> {
     try {
-      const params = new URLSearchParams({
-        src: fromTokenAddress,
-        dst: toTokenAddress,
-        amount: amount,
-        from: fromAddress,
-        slippage: '1', // 1% slippage
-        disableEstimate: 'false'
-      });
+      console.log(`Fetching swap quote for ${fromTokenAddress} -> ${toTokenAddress} on chain ${chainId}...`);
+      console.log('API Key available:', !!ONEINCH_API_KEY);
+      console.log('API Base URL:', ONEINCH_API_BASE);
+      
+      // Use the same proxy approach as other APIs
+      const url = `${ONEINCH_API_BASE}/swap/v6.1/${chainId}/quote`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {
+          src: fromTokenAddress,
+          dst: toTokenAddress,
+          amount: amount,
+          from: fromAddress,
+          slippage: '1', // 1% slippage
+          disableEstimate: 'false'
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
 
-      const response = await api.get(`/swap/v6.0/${chainId}/quote?${params}`);
+      console.log('Making request to:', url);
+      console.log('Request config:', { ...config, headers: { ...config.headers, Authorization: '[REDACTED]' } });
+      
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Swap quote response received:', response.data);
       
       const quote: SwapQuote = {
         fromToken: response.data.fromToken,
@@ -175,7 +194,192 @@ export class OneInchAPI {
 
       return { success: true, data: quote };
     } catch (error: any) {
-      return { success: false, data: {} as SwapQuote, error: error.message };
+      console.error('❌ Error fetching swap quote:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Invalid swap parameters - ' + (error.response.data?.message || error.response.data?.error || 'Bad request');
+      }
+      
+      return { success: false, data: {} as SwapQuote, error: errorMessage };
+    }
+  }
+
+  // Swap API - Get swap transaction
+  static async getSwapTransaction(
+    chainId: number,
+    fromTokenAddress: string,
+    toTokenAddress: string,
+    amount: string,
+    fromAddress: string,
+    slippage: number = 1
+  ): Promise<ApiResponse<any>> {
+    try {
+      console.log(`Fetching swap transaction for ${fromTokenAddress} -> ${toTokenAddress} on chain ${chainId}...`);
+      
+      const url = `${ONEINCH_API_BASE}/swap/v6.1/${chainId}/swap`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {
+          src: fromTokenAddress,
+          dst: toTokenAddress,
+          amount: amount,
+          from: fromAddress,
+          slippage: slippage.toString(),
+          disableEstimate: 'false'
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making request to:', url);
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Swap transaction response received:', response.data);
+      
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error('❌ Error fetching swap transaction:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Invalid swap parameters - ' + (error.response.data?.message || error.response.data?.error || 'Bad request');
+      }
+      
+      return { success: false, data: null, error: errorMessage };
+    }
+  }
+
+  // Swap API - Check token allowance
+  static async checkTokenAllowance(
+    chainId: number,
+    tokenAddress: string,
+    walletAddress: string
+  ): Promise<ApiResponse<{ allowance: string }>> {
+    try {
+      console.log(`Checking allowance for token ${tokenAddress} on chain ${chainId}...`);
+      
+      const url = `${ONEINCH_API_BASE}/swap/v6.1/${chainId}/approve/allowance`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {
+          tokenAddress: tokenAddress,
+          walletAddress: walletAddress,
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making request to:', url);
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Allowance response received:', response.data);
+      
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error('❌ Error checking allowance:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      }
+      
+      return { success: false, data: { allowance: '0' }, error: errorMessage };
+    }
+  }
+
+  // Swap API - Get approval transaction
+  static async getApprovalTransaction(
+    chainId: number,
+    tokenAddress: string,
+    amount: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      console.log(`Getting approval transaction for token ${tokenAddress} on chain ${chainId}...`);
+      
+      const url = `${ONEINCH_API_BASE}/swap/v6.1/${chainId}/approve/transaction`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {
+          tokenAddress: tokenAddress,
+          amount: amount,
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making request to:', url);
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Approval transaction response received:', response.data);
+      
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error('❌ Error getting approval transaction:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      }
+      
+      return { success: false, data: null, error: errorMessage };
     }
   }
 
