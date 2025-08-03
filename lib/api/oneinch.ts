@@ -531,7 +531,7 @@ export class OneInchAPI {
       // Try 1: Direct 1inch API
       try {
         console.log('🔄 Attempt 1: Direct 1inch API...');
-        const directUrl = `https://api.1inch.dev/orderbook/v4.0/${chainId}/order`;
+        const directUrl = `https://api.1inch.dev/orderbook/v4.0/1`;
         const directConfig = {
           headers: {
             'Authorization': `Bearer ${ONEINCH_API_KEY}`,
@@ -556,7 +556,7 @@ export class OneInchAPI {
       // Try 2: Next.js Proxy
       try {
         console.log('🔄 Attempt 2: Next.js proxy...');
-        const proxyUrl = `/api/1inch/orderbook/v4.0/${chainId}/order`;
+        const proxyUrl = `/api/1inch/orderbook/v4.0/1`;
         const proxyConfig = {
           headers: {
             'Authorization': `Bearer ${ONEINCH_API_KEY}`,
@@ -581,7 +581,7 @@ export class OneInchAPI {
       // Try 3: Vercel Proxy (same as other API calls)
       try {
         console.log('🔄 Attempt 3: Vercel proxy...');
-        const vercelUrl = `${ONEINCH_API_BASE}/orderbook/v4.0/${chainId}/order`;
+        const vercelUrl = `${ONEINCH_API_BASE}/orderbook/v4.0/1`;
         const vercelConfig = {
           headers: {
             'Authorization': `Bearer ${ONEINCH_API_KEY}`,

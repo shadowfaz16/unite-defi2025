@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/1inch/:path*',
-        destination: 'https://api.1inch.dev/:path*',
+        destination: 'https://1inch-vercel-proxy-lyart.vercel.app/:path*',
       },
     ];
   },
