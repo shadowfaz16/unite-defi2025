@@ -12,6 +12,7 @@ import {
   TrendingDown,
   Zap,
   DollarSign,
+  LineChart,
 } from "lucide-react"
 
 import { NavSimple } from "@/components/nav-simple"
@@ -61,6 +62,11 @@ const data = {
       title: "Analytics",
       url: "/analytics",
       icon: TrendingUp,
+    },
+    {
+      title: "Charts",
+      url: "/charts",
+      icon: LineChart,
     },
   ],
   strategies: [

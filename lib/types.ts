@@ -93,8 +93,18 @@ export interface SwapQuote {
 
 export interface ChartData {
   timestamp: number;
+  time: string;
   price: number;
   volume: number;
+}
+
+export interface ChartPoint {
+  time: number;
+  value: number;
+}
+
+export interface ChartAPIResponse {
+  data: ChartPoint[];
 }
 
 export interface GasPrice {

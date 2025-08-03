@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ONEINCH_API_BASE, ONEINCH_API_KEY } from '../constants';
-import type { Token, TokenBalance, PriceData, SwapQuote, ApiResponse, GasPriceData } from '../types';
+import type { Token, TokenBalance, PriceData, SwapQuote, ApiResponse, GasPriceData, ChartAPIResponse, ChartData } from '../types';
 
 const api = axios.create({
   baseURL: ONEINCH_API_BASE,
@@ -227,6 +227,76 @@ export class OneInchAPI {
       }
       
       return { success: false, data: {} as GasPriceData, error: errorMessage };
+    }
+  }
+
+  // Charts API - Get historical price data
+  static async getChartData(
+    token0: string,
+    token1: string,
+    period: '24H' | '1W' | '1M' | '1Y' | 'AllTime',
+    chainId: number = 1
+  ): Promise<ApiResponse<ChartData[]>> {
+    try {
+      console.log(`Fetching chart data for ${token0}/${token1} period ${period} on chain ${chainId}...`);
+      console.log('API Key available:', !!ONEINCH_API_KEY);
+      console.log('API Base URL:', ONEINCH_API_BASE);
+      
+      // Use the same proxy approach as gas price API
+      const url = `${ONEINCH_API_BASE}/charts/v1.0/chart/line/${token0}/${token1}/${period}/${chainId}`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {},
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making request to:', url);
+      console.log('Request config:', { ...config, headers: { ...config.headers, Authorization: '[REDACTED]' } });
+      
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Chart data response received:', response.data);
+      
+      // Transform the API response to match our ChartData interface
+      const chartData: ChartData[] = response.data.data.map((point: any, index: number) => ({
+        timestamp: point.time * 1000, // Convert to milliseconds
+        time: new Date(point.time * 1000).toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          month: 'short',
+          day: 'numeric'
+        }),
+        price: point.value,
+        volume: Math.random() * 1000000 + 500000 // Mock volume data since API doesn't provide it
+      }));
+
+      return { success: true, data: chartData };
+    } catch (error: any) {
+      console.error('❌ Error fetching chart data:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - please check permissions';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Chart data not found for this token pair';
+      }
+      
+      return { success: false, data: [], error: errorMessage };
     }
   }
 }
