@@ -45,7 +45,7 @@ export function FeaturesSection() {
 
   const apiIntegrations = [
     {
-      name: "Fusion API",
+      name: "Chart API",
       description: "MEV-protected gasless swaps",
       icon: "🛡️",
       benefit: "100% sandwich attack protection"
@@ -75,7 +75,7 @@ export function FeaturesSection() {
       benefit: "Comprehensive token data"
     },
     {
-      name: "Gateway API",
+      name: "History API",
       description: "Transaction broadcasting",
       icon: "📡",
       benefit: "Secure on-chain execution"

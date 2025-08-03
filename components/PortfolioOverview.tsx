@@ -97,11 +97,84 @@ export function PortfolioOverview() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Cross-Chain Summary */}
+        <Card className="border border-gray-200 dark:border-gray-800 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Cross-Chain Portfolio
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {crossChainLoading ? (
+              <div className="space-y-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                  </div>
+                ))}
+              </div>
+            ) : crossChain ? (
+              <div className="space-y-4">
+                {Object.entries(crossChain.valuesByChain || {})
+                  .filter(([_, value]) => value > 0) // Only show chains with value
+                  .map(([chainId, chainValue]) => {
+                    const balances =
+                      crossChain.balancesByChain?.[parseInt(chainId)] || [];
+                    const chainNames: Record<string, string> = {
+                      "1": "Ethereum",
+                      "137": "Polygon",
+                      "56": "BSC",
+                      "43114": "Avalanche",
+                    };
+
+                    return (
+                      <div
+                        key={chainId}
+                        className="flex items-center justify-between p-4 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 text-xs font-semibold">
+                            {chainNames[chainId]?.charAt(0) || "?"}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
+                              {chainNames[chainId] || "Unknown"}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-gray-900 dark:text-gray-100">
+                            ${chainValue.toFixed(2)}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {crossChain.totalValueUSD > 0
+                              ? (
+                                  (chainValue / crossChain.totalValueUSD) *
+                                  100
+                                ).toFixed(1)
+                              : "0"}
+                            %
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+                <p className="font-medium mb-2">No cross-chain data</p>
+                <p className="text-sm">Loading portfolio across networks...</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Current Chain Holdings */}
         <Card className="border border-gray-200 dark:border-gray-800 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Holdings on {chain?.name || "Current Chain"}
+              NFT holdings on {chain?.name || "Current Chain"}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -157,79 +230,6 @@ export function PortfolioOverview() {
                 <p className="text-sm">
                   Make sure you&apos;re on the right network
                 </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Cross-Chain Summary */}
-        <Card className="border border-gray-200 dark:border-gray-800 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Cross-Chain Portfolio
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {crossChainLoading ? (
-              <div className="space-y-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-2"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-                  </div>
-                ))}
-              </div>
-            ) : crossChain ? (
-              <div className="space-y-4">
-                {Object.entries(crossChain.valuesByChain || {})
-                  .filter(([_, value]) => value > 0) // Only show chains with value
-                  .map(([chainId, chainValue]) => {
-                    const balances = crossChain.balancesByChain?.[parseInt(chainId)] || [];
-                    const chainNames: Record<string, string> = {
-                      "1": "Ethereum",
-                      "137": "Polygon",
-                      "56": "BSC",
-                      "43114": "Avalanche",
-                    };
-
-                    return (
-                      <div
-                        key={chainId}
-                        className="flex items-center justify-between p-4 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 text-xs font-semibold">
-                            {chainNames[chainId]?.charAt(0) || "?"}
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {chainNames[chainId] || "Unknown"}
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              {balances.length} assets
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-gray-900 dark:text-gray-100">
-                            ${chainValue.toFixed(2)}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {crossChain.totalValueUSD > 0 ? (
-                              (chainValue / crossChain.totalValueUSD * 100).toFixed(1)
-                            ) : (
-                              "0"
-                            )}%
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-12">
-                <p className="font-medium mb-2">No cross-chain data</p>
-                <p className="text-sm">Loading portfolio across networks...</p>
               </div>
             )}
           </CardContent>

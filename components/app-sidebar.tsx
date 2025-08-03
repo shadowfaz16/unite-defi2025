@@ -51,11 +51,6 @@ const data = {
       isActive: true,
     },
     {
-      title: "Swap",
-      url: "/swap",
-      icon: ArrowLeftRight,
-    },
-    {
       title: "Portfolio",
       url: "/portfolio",
       icon: Briefcase,
@@ -73,14 +68,14 @@ const data = {
   ],
   strategies: [
     {
+      name: "Swap",
+      url: "/swap",
+      icon: ArrowLeftRight,
+    },
+    {
       name: "Strategies",
       url: "/strategies",
       icon: Target,
-    },
-    {
-      name: "Demo",
-      url: "/demo",
-      icon: Play,
     },
   ],
 }

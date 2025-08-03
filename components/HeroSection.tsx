@@ -79,7 +79,7 @@ export function HeroSection() {
           </div>
 
           {/* Feature showcase */}
-          <div className="flex justify-center">
+          {/* <div className="flex justify-center">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50 p-6 shadow-lg">
               <CardContent className="flex items-center gap-4 pb-0">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${features[currentFeature].color} flex items-center justify-center text-2xl shadow-lg`}>
@@ -95,7 +95,7 @@ export function HeroSection() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
 
           {/* CTA buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -123,11 +123,11 @@ export function HeroSection() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto pt-12">
             <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">6+</div>
+              <div className="text-3xl font-bold text-foreground">6</div>
               <div className="text-muted-foreground">1inch APIs</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">4</div>
+              <div className="text-3xl font-bold text-foreground">4+</div>
               <div className="text-muted-foreground">Advanced Strategies</div>
             </div>
             <div className="text-center">
