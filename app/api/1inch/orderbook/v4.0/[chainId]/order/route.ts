@@ -13,7 +13,7 @@ export async function POST(
     console.log(`🔄 Proxying 1inch order submission for chain ${chainId}`);
     console.log('📤 Request body:', JSON.stringify(body, null, 2));
 
-    const response = await fetch(`https://1inch-vercel-proxy-lyart.vercel.app/orderbook/v4.0/${chainId}/order`, {
+    const response = await fetch(`https://1inch-vercel-proxy-lyart.vercel.app/orderbook/v4.0/1`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${ONEINCH_API_KEY}`,

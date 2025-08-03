@@ -86,7 +86,10 @@ export class DCAStrategy extends BaseStrategy {
       const currentPrice = await this.getCurrentPrice(params.fromToken, params.toToken);
       console.log(`📊 Current ${params.fromToken.symbol}/${params.toToken.symbol} price: ${currentPrice}`);
       
+      // params.amountPerOrder is already in decimals (converted by frontend)
       const makingAmount = BigInt(params.amountPerOrder);
+      const userFriendlyAmount = Number(makingAmount) / (10 ** params.fromToken.decimals);
+      console.log(`💰 Using amount: ${userFriendlyAmount} ${params.fromToken.symbol} (${params.amountPerOrder} decimals)`);
       
       // Calculate taking amount with slippage protection using base class method
       const { takingAmount, effectivePrice } = this.calculateAmountsWithSlippage(

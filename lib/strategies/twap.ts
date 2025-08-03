@@ -37,6 +37,11 @@ export class TWAPStrategy extends BaseStrategy {
     const totalAmountBN = BigInt(totalAmount);
     const amountPerOrder = totalAmountBN / BigInt(numberOfOrders);
     
+    // Debug: Show user-friendly amounts
+    const userFriendlyTotal = Number(totalAmountBN) / (10 ** fromToken.decimals);
+    const userFriendlyPerOrder = Number(amountPerOrder) / (10 ** fromToken.decimals);
+    console.log(`📊 TWAP Strategy: Total ${userFriendlyTotal} ${fromToken.symbol} split into ${numberOfOrders} orders of ${userFriendlyPerOrder} ${fromToken.symbol} each`);
+    
     const strategy: TradingStrategy = {
       id: `twap_${Date.now()}`,
       type: 'TWAP',
@@ -88,7 +93,10 @@ export class TWAPStrategy extends BaseStrategy {
       const currentPrice = await this.getCurrentPrice(params.fromToken, params.toToken);
       console.log(`📊 Current ${params.fromToken.symbol}/${params.toToken.symbol} price: ${currentPrice}`);
       
+      // params.amountPerOrder is already in decimals (converted by frontend)
       const makingAmount = BigInt(params.amountPerOrder);
+      const userFriendlyAmount = Number(makingAmount) / (10 ** params.fromToken.decimals);
+      console.log(`💰 Using amount: ${userFriendlyAmount} ${params.fromToken.symbol} (${params.amountPerOrder} decimals)`);
       
       // Calculate taking amount with slippage protection using base class method
       const { takingAmount } = this.calculateAmountsWithSlippage(
