@@ -10,6 +10,7 @@ import {
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import Link from "next/link";
+import { GasPriceCard } from "../../../components/GasPriceCard";
 
 export default function DashboardPage() {
   const quickActions = [
@@ -103,6 +104,16 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Gas Price Information */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            Network Information
+          </h2>
+        </div>
+        <GasPriceCard chainId={1} autoRefresh={true} refreshInterval={30} />
       </div>
 
       {/* Quick Actions */}

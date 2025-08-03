@@ -18,13 +18,6 @@ export function StrategyPanel() {
 
   const strategyTypes = [
     {
-      id: 'test',
-      name: 'Test Strategy',
-      description: 'Test limit order creation with custom parameters',
-      icon: '🧪',
-      color: 'from-yellow-500 to-yellow-600',
-    },
-    {
       id: 'twap',
       name: 'TWAP Orders',
       description: 'Time-Weighted Average Price splitting large orders over time',
@@ -52,6 +45,13 @@ export function StrategyPanel() {
       icon: '🌊',
       color: 'from-orange-500 to-orange-600',
     },
+    {
+      id: 'test',
+      name: 'Test Strategy',
+      description: 'Test limit order creation with custom parameters (1 USDT -> 0.1 1INCH)',
+      icon: '🧪',
+      color: 'from-yellow-500 to-yellow-600',
+    }
   ];
 
   return (

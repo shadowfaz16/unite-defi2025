@@ -96,3 +96,16 @@ export interface ChartData {
   price: number;
   volume: number;
 }
+
+export interface GasPrice {
+  maxPriorityFeePerGas: string;
+  maxFeePerGas: string;
+}
+
+export interface GasPriceData {
+  baseFee: string;
+  low: GasPrice;
+  medium: GasPrice;
+  high: GasPrice;
+  instant: GasPrice;
+}

@@ -49,7 +49,7 @@ const TOKENS = {
  */
 export async function createLimitOrderWorking(config: LimitOrderConfig = {}): Promise<LimitOrderResult> {
   const {
-    authKey = typeof process !== 'undefined' ? (process.env?.NEXT_PUBLIC_1INCH_API_KEY || process.env?.INCH_API_KEY || "demo-key") : "demo-key",
+    authKey = typeof process !== 'undefined' ? (process.env?.NEXT_PUBLIC_1INCH_API_KEY || process.env?.NEXT_PUBLIC_ONEINCH_API_KEY || "demo-key") : "demo-key",
     privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
     networkId = 1,
     expiresInSeconds = BigInt(120),
@@ -60,7 +60,7 @@ export async function createLimitOrderWorking(config: LimitOrderConfig = {}): Pr
   if (typeof process !== 'undefined') {
     console.log("🔍 Debug - Environment check:");
     console.log("   NEXT_PUBLIC_1INCH_API_KEY:", process.env?.NEXT_PUBLIC_1INCH_API_KEY ? "***FOUND***" : "not found");
-    console.log("   1INCH_API_KEY:", process.env?.["1INCH_API_KEY"] ? "***FOUND***" : "not found");
+    console.log("   1INCH_API_KEY:", process.env?.NEXT_PUBLIC_ONEINCH_API_KEY ? "***FOUND***" : "not found");
   }
   console.log("   authKey length:", authKey.length);
   console.log("   authKey starts with:", authKey.substring(0, 8) + "...");
@@ -227,11 +227,12 @@ export async function createLimitOrderWorking(config: LimitOrderConfig = {}): Pr
     // Step 7: Define order parameters
     console.log("\n📊 Step 7: Setting up order parameters...");
     
-    // Use custom tokens if provided, otherwise use defaults
+    // Use custom tokens if provided, otherwise use smaller test defaults
     const makerAssetAddress = customTokens?.makerAsset || TOKENS.USDT;
     const takerAssetAddress = customTokens?.takerAsset || TOKENS.INCH;
-    const makingAmount = customTokens?.makingAmount ? BigInt(customTokens.makingAmount) : BigInt(100_000000);
-    const takingAmount = customTokens?.takingAmount ? BigInt(customTokens.takingAmount) : BigInt("10000000000000000000");
+    // Much smaller amounts for testing: 1 USDT (6 decimals) -> 0.1 1INCH (18 decimals)
+    const makingAmount = customTokens?.makingAmount ? BigInt(customTokens.makingAmount) : BigInt(1_000000); // 1 USDT
+    const takingAmount = customTokens?.takingAmount ? BigInt(customTokens.takingAmount) : BigInt("100000000000000000"); // 0.1 1INCH
     
     const orderParams = {
       makerAsset: new Address(makerAssetAddress),
@@ -317,60 +318,62 @@ export async function createLimitOrderWorking(config: LimitOrderConfig = {}): Pr
     // Step 11: Submit order to 1inch
     console.log("\n📤 Step 11: Submitting order to 1inch...");
     
-    // Try manual submission to avoid extension issues
+    // Submit order using the proper 1inch Limit Order API format
     try {
-      // Create order data manually with proper serialization
-      console.log("🔧 Debugging field values:");
-      console.log("   makerTraits raw:", order.makerTraits);
-      console.log("   makerTraits type:", typeof order.makerTraits);
-      console.log("   makerTraits toString:", order.makerTraits.toString?.());
+      console.log("🔧 Preparing order submission...");
       
-      const orderData = {
-        maker: order.maker.toString(),
-        makerAsset: order.makerAsset.toString(),
-        takerAsset: order.takerAsset.toString(),
-        makerTraits: order.makerTraits.toString(),
-        salt: order.salt.toString(),
-        makingAmount: order.makingAmount.toString(),
-        takingAmount: order.takingAmount.toString(),
-        receiver: order.receiver.toString(),
-        // Try omitting extension completely instead of empty string
-      };
-      
-      console.log("🔧 Fixed order data:", JSON.stringify(orderData, null, 2));
-      
-      const manualPayload = {
-        orderHash: orderHash,
-        signature: signature,
-        data: orderData
-      };
-      
-      console.log("🔧 Trying manual submission without extension...");
-      const manualResult = await authAwareConnector.post(
-        `https://api.1inch.dev/orderbook/v4.0/${networkId}/`,
-        manualPayload
-      );
-      
-      console.log("✅ Manual order submitted successfully!");
-      console.log("   Manual result:", manualResult);
-      
-    } catch (manualError) {
-      console.log("❌ Manual submission failed, trying original API...");
-      const errorMessage = manualError instanceof Error ? manualError.message : 'Unknown error';
-      console.log("   Manual error:", errorMessage);
-      
-      // Fallback to original API
+      // Use the SDK's built-in submission method first
       const submitResult = await api.submitOrder(order, signature);
-      console.log("✅ Order submitted successfully!");
+      console.log("✅ Order submitted successfully via SDK!");
       console.log("   Submit result:", submitResult);
+      
+    } catch (sdkError) {
+      console.log("❌ SDK submission failed, trying manual API call...");
+      const errorMessage = sdkError instanceof Error ? sdkError.message : 'Unknown error';
+      console.log("   SDK error:", errorMessage);
+      
+      try {
+        // Manual submission with correct format
+        const orderData = {
+          maker: order.maker.toString(),
+          makerAsset: order.makerAsset.toString(),
+          takerAsset: order.takerAsset.toString(),
+          makerTraits: order.makerTraits.toString(),
+          salt: order.salt.toString(),
+          makingAmount: order.makingAmount.toString(),
+          takingAmount: order.takingAmount.toString(),
+          receiver: order.receiver.toString(),
+          extension: order.extension?.toString() || "0x"
+        };
+        
+        console.log("🔧 Order data for manual submission:", JSON.stringify(orderData, null, 2));
+        
+        const manualResult = await authAwareConnector.post(
+          `https://api.1inch.dev/orderbook/v4.0/${networkId}`,
+          {
+            orderHash: orderHash,
+            signature: signature,
+            data: orderData
+          }
+        );
+        
+        console.log("✅ Manual order submitted successfully!");
+        console.log("   Manual result:", manualResult);
+        
+      } catch (manualError) {
+        console.error("❌ Both SDK and manual submission failed");
+        const manualErrorMessage = manualError instanceof Error ? manualError.message : 'Unknown error';
+        console.error("   Manual error:", manualErrorMessage);
+        throw manualError;
+      }
     }
 
     console.log("\n🎉 SUCCESS: Limit order created and submitted successfully!");
     console.log("📊 Order Summary:");
     console.log("   Hash:", orderHash);
     console.log("   Maker:", maker.address);
-    console.log("   Selling: 100 USDT");
-    console.log("   Buying: 10 1INCH");
+    console.log("   Selling: 1 USDT");
+    console.log("   Buying: 0.1 1INCH");
     console.log("   Expires:", new Date(Number(expiration) * 1000).toISOString());
 
     return {
@@ -418,21 +421,58 @@ export async function createLimitOrderWorking(config: LimitOrderConfig = {}): Pr
 }
 
 /**
- * Test function to run the limit order creation
+ * Test function with even smaller amounts for safer testing
  */
 export async function testLimitOrderWorking(): Promise<LimitOrderResult> {
-  console.log("🧪 Running Working Limit Order Test...\n");
+  console.log("🧪 Running Working Limit Order Test with Small Amounts...\n");
   
   const result = await createLimitOrderWorking({
-    // You can override defaults here
-    // authKey: "your-real-api-key",
-    // expiresInSeconds: 300n, // 5 minutes
+    // Use very small test amounts
+    customTokens: {
+      makerAsset: TOKENS.USDT,
+      takerAsset: TOKENS.INCH,
+      makingAmount: "100000", // 0.1 USDT (6 decimals)
+      takingAmount: "10000000000000000", // 0.01 1INCH (18 decimals)
+    },
+    expiresInSeconds: BigInt(300), // 5 minutes
   });
 
   if (result.success) {
     console.log("\n✅ Test completed successfully!");
+    console.log("📊 Created order for 0.1 USDT → 0.01 1INCH");
   } else {
     console.log("\n❌ Test failed!");
+    if (result.error) {
+      console.log("Error details:", result.error.message);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Test function with custom token amounts
+ */
+export async function testLimitOrderCustom(config: {
+  makerAsset?: string;
+  takerAsset?: string;
+  makingAmount?: string;
+  takingAmount?: string;
+}): Promise<LimitOrderResult> {
+  console.log("🧪 Running Custom Limit Order Test...\n");
+  
+  const result = await createLimitOrderWorking({
+    customTokens: config,
+    expiresInSeconds: BigInt(300), // 5 minutes
+  });
+
+  if (result.success) {
+    console.log("\n✅ Custom test completed successfully!");
+  } else {
+    console.log("\n❌ Custom test failed!");
+    if (result.error) {
+      console.log("Error details:", result.error.message);
+    }
   }
 
   return result;

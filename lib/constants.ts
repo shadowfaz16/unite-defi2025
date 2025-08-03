@@ -1,6 +1,6 @@
 // 1inch API endpoints and configuration
 export const ONEINCH_API_BASE = 'https://api.1inch.dev';
-export const ONEINCH_API_KEY = process.env.NEXT_PUBLIC_ONEINCH_API_KEY || '';
+export const ONEINCH_API_KEY = process.env.NEXT_PUBLIC_1INCH_API_KEY || 'sQ7qNdg4KNi4d2jjkboVZcFPl8oy0EsZ';
 
 // Supported networks
 export const SUPPORTED_NETWORKS = {

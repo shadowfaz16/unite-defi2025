@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "1inch Advanced Trading Hub",
+  title: "1inch Trading Hub",
   description: "Advanced trading strategies and limit orders on 1inch Protocol",
 };
 

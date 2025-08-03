@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ONEINCH_API_BASE, ONEINCH_API_KEY } from '../constants';
-import type { Token, TokenBalance, PriceData, SwapQuote, ApiResponse } from '../types';
+import type { Token, TokenBalance, PriceData, SwapQuote, ApiResponse, GasPriceData } from '../types';
 
 const api = axios.create({
   baseURL: ONEINCH_API_BASE,
@@ -152,6 +152,41 @@ export class OneInchAPI {
       return { success: true, data: response.data.transactionHash };
     } catch (error: any) {
       return { success: false, data: '', error: error.message };
+    }
+  }
+
+  // Gas Price API - Get current gas prices
+  static async getGasPrice(chainId: number): Promise<ApiResponse<GasPriceData>> {
+    try {
+      console.log(`Fetching gas prices for chain ${chainId}...`);
+      const response = await api.get(`/gas-price/v1.6/${chainId}`);
+      
+      console.log('Gas price response:', response.data);
+      
+      const gasData: GasPriceData = {
+        baseFee: response.data.baseFee,
+        low: {
+          maxPriorityFeePerGas: response.data.low.maxPriorityFeePerGas,
+          maxFeePerGas: response.data.low.maxFeePerGas
+        },
+        medium: {
+          maxPriorityFeePerGas: response.data.medium.maxPriorityFeePerGas,
+          maxFeePerGas: response.data.medium.maxFeePerGas
+        },
+        high: {
+          maxPriorityFeePerGas: response.data.high.maxPriorityFeePerGas,
+          maxFeePerGas: response.data.high.maxFeePerGas
+        },
+        instant: {
+          maxPriorityFeePerGas: response.data.instant.maxPriorityFeePerGas,
+          maxFeePerGas: response.data.instant.maxFeePerGas
+        }
+      };
+
+      return { success: true, data: gasData };
+    } catch (error: any) {
+      console.error('Error fetching gas prices:', error);
+      return { success: false, data: {} as GasPriceData, error: error.message };
     }
   }
 }
