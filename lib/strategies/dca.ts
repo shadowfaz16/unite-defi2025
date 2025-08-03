@@ -136,10 +136,22 @@ export class DCAStrategy extends BaseStrategy {
         orderHash: customOrder.orderHash
       };
 
-      // Submit to custom orderbook (not official 1inch API per hackathon rules)
-      await this.submitToCustomOrderbook(order, signature, customOrder, 'DCA');
+      // Submit to REAL 1inch API
+      console.log(`📤 Submitting DCA order to REAL 1inch API...`);
+      const apiResult = await this.submitToRealOneInchAPI(order, signature, customOrder, 'DCA');
 
-      console.log(`✅ DCA order ${dcaOrder.id} created and submitted to custom orderbook`);
+      if (apiResult.success) {
+        console.log(`✅ DCA order ${dcaOrder.id} successfully submitted to 1inch API!`);
+        console.log(`🔗 Order hash: ${apiResult.apiResponse?.orderHash}`);
+      } else {
+        console.log(`⚠️ DCA order ${dcaOrder.id} stored locally as fallback`);
+      }
+      
+      // Verify storage after submission
+      if (typeof window !== 'undefined') {
+        const storedOrders = JSON.parse(localStorage.getItem('custom_dca_orders') || '[]');
+        console.log(`🔍 Verification: ${storedOrders.length} DCA orders now in localStorage`);
+      }
       return dcaOrder;
     } catch (error) {
       console.error('Error executing DCA order:', error);

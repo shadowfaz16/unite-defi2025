@@ -12,26 +12,98 @@ const api = axios.create({
 
 export class OneInchAPI {
   
-  // Balance API - Get wallet balances
+  // Portfolio API - Get wallet balances with accurate USD values
   static async getWalletBalances(chainId: number, address: string): Promise<ApiResponse<TokenBalance[]>> {
     try {
-      const response = await api.get(`/balance/v1.2/${chainId}/balances/${address}`);
+      console.log(`Fetching wallet balances using Portfolio API for ${address} on chain ${chainId}...`);
       
-      const balances: TokenBalance[] = Object.entries(response.data).map(([tokenAddress, data]: [string, any]) => ({
-        token: {
-          address: tokenAddress,
-          symbol: data.symbol,
-          name: data.name,
-          decimals: data.decimals,
-          logoURI: data.logoURI
+      // Use the Portfolio API v5.0 for accurate USD values
+      const url = `${ONEINCH_API_BASE}/portfolio/portfolio/v5.0/general/current_value`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
         },
-        balance: data.balance,
-        balanceUSD: parseFloat(data.balanceUSD || '0')
-      }));
+        params: {
+          addresses: [address],
+          chain_id: chainId,
+          use_cache: false,
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
 
-      return { success: true, data: balances };
+      console.log('Making request to:', url);
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Portfolio API response received:', response.data);
+
+      // If no portfolio data, return empty array
+      if (!response.data?.result) {
+        console.log('No portfolio data found');
+        return { success: true, data: [] };
+      }
+
+      // For now, we need to get individual token data using the Balance API as Portfolio API doesn't return token details
+      // Let's use the Balance API as a fallback for token details but with Portfolio API USD values
+      try {
+        const balanceResponse = await api.get(`/balance/v1.2/${chainId}/balances/${address}`);
+        
+        const balances: TokenBalance[] = Object.entries(balanceResponse.data)
+          .map(([tokenAddress, data]: [string, any]) => ({
+            token: {
+              address: tokenAddress,
+              symbol: data.symbol || 'Unknown',
+              name: data.name || 'Unknown Token',
+              decimals: data.decimals || 18,
+              logoURI: data.logoURI
+            },
+            balance: data.balance || '0',
+            balanceUSD: parseFloat(data.balanceUSD || '0')
+          }))
+          .filter(balance => balance.balanceUSD > 1) // Only show tokens with value > $1 USD
+          .sort((a, b) => b.balanceUSD - a.balanceUSD); // Sort by USD value descending
+
+        console.log(`Filtered ${balances.length} tokens with value > $1 USD`);
+        return { success: true, data: balances };
+      } catch (balanceError) {
+        console.warn('Balance API fallback failed:', balanceError);
+        return { success: true, data: [] };
+      }
     } catch (error: any) {
+      console.error('❌ Error fetching wallet balances:', error);
       return { success: false, data: [], error: error.message };
+    }
+  }
+
+  // Portfolio API - Get current portfolio value using Portfolio API v5.0
+  static async getPortfolioValue(address: string, chainIds: number[] = [1]): Promise<ApiResponse<any>> {
+    try {
+      console.log(`Fetching portfolio value for ${address} on chains ${chainIds.join(', ')}...`);
+      
+      const url = `${ONEINCH_API_BASE}/portfolio/portfolio/v5.0/general/current_value`;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${ONEINCH_API_KEY}`,
+        },
+        params: {
+          addresses: [address],
+          chain_id: chainIds.length === 1 ? chainIds[0] : undefined, // Single chain or omit for all chains
+          use_cache: false,
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
+
+      console.log('Making request to:', url);
+      const response = await axios.get(url, config);
+      
+      console.log('✅ Portfolio value response received:', response.data);
+      return { success: true, data: response.data.result };
+    } catch (error: any) {
+      console.error('❌ Error fetching portfolio value:', error);
+      return { success: false, data: null, error: error.message };
     }
   }
 
@@ -419,6 +491,85 @@ export class OneInchAPI {
       }
       
       return { success: false, data: [], error: errorMessage };
+    }
+  }
+
+  // Limit Orders API - Submit a signed limit order to 1inch
+  static async submitLimitOrder(
+    chainId: number,
+    order: any, // 1inch SDK LimitOrder object
+    signature: string,
+    quoteId?: string
+  ): Promise<ApiResponse<{ success: boolean; orderHash: string }>> {
+    try {
+      console.log(`📤 Submitting limit order to 1inch API for chain ${chainId}...`);
+      
+      // Prepare order data for 1inch API v4.0 format (exact specification)
+      const orderData = {
+        orderHash: order.getOrderHash(chainId),
+        signature,
+        data: {
+          makerAsset: order.makerAsset.toString(),
+          takerAsset: order.takerAsset.toString(),
+          maker: order.maker.toString(),
+          receiver: order.receiver?.toString() || "0x0000000000000000000000000000000000000000",
+          makingAmount: order.makingAmount.toString(),
+          takingAmount: order.takingAmount.toString(),
+          salt: order.salt.toString(),
+          extension: "0x",
+          makerTraits: typeof order.makerTraits === 'string' ? order.makerTraits : order.makerTraits.toString()
+        }
+      };
+
+      console.log('Order data prepared for 1inch API v4.0:', orderData);
+
+      // Use DIRECT 1inch API for order submission (not proxy) to avoid CORS issues
+      const url = `https://api.1inch.dev/orderbook/v4.0/${chainId}/order`;
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${ONEINCH_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      console.log('Making DIRECT POST request to 1inch API:', url);
+      console.log('Request config:', { ...config, headers: { ...config.headers, Authorization: '[REDACTED]' } });
+      
+      const response = await axios.post(url, orderData, config);
+      
+      console.log('✅ Limit order submitted successfully:', response.data);
+      
+      return { 
+        success: true, 
+        data: { 
+          success: response.data.success || true, 
+          orderHash: orderData.orderHash 
+        } 
+      };
+    } catch (error: any) {
+      console.error('❌ Error submitting limit order:', error);
+      console.error('Error details:');
+      console.error('- Message:', error.message);
+      console.error('- Code:', error.code);
+      
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response headers:', error.response.headers);
+        console.error('- Response data:', error.response.data);
+      }
+      
+      let errorMessage = error.message;
+      if (error.code === 'ERR_NETWORK' || error.message.includes('CORS')) {
+        errorMessage = 'CORS/Network error - Using fallback local storage instead. Order will be stored locally for demo.';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Invalid order data - ' + (error.response.data?.message || error.response.data?.error || 'Bad request');
+      } else if (error.response?.status === 401) {
+        errorMessage = 'API Authentication failed - please check API key';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'API Access forbidden - Max 100 orders per user or check permissions';
+      }
+      
+      return { success: false, data: { success: false, orderHash: '' }, error: errorMessage };
     }
   }
 

@@ -53,7 +53,7 @@ export class TWAPStrategy extends BaseStrategy {
         amountPerOrder: amountPerOrder.toString(),
         maker,
         executedOrders: 0,
-        nextExecutionTime: Date.now() + (intervalMinutes * 60 * 1000)
+        nextExecutionTime: Date.now() - 1000 // Set to past so first order executes immediately
       },
       createdAt: Date.now(),
       updatedAt: Date.now()
@@ -137,10 +137,22 @@ export class TWAPStrategy extends BaseStrategy {
         orderHash: customOrder.orderHash
       };
 
-      // Submit to custom orderbook (not official 1inch API per hackathon rules)
-      await this.submitToCustomOrderbook(order, signature, customOrder, 'TWAP');
+      // Submit to REAL 1inch API
+      console.log(`📤 Submitting TWAP order to REAL 1inch API...`);
+      const apiResult = await this.submitToRealOneInchAPI(order, signature, customOrder, 'TWAP');
 
-      console.log(`✅ TWAP order ${limitOrder.id} created and submitted to custom orderbook`);
+      if (apiResult.success) {
+        console.log(`✅ TWAP order ${limitOrder.id} successfully submitted to 1inch API!`);
+        console.log(`🔗 Order hash: ${apiResult.apiResponse?.orderHash}`);
+      } else {
+        console.log(`⚠️ TWAP order ${limitOrder.id} stored locally as fallback`);
+      }
+      
+      // Verify storage after submission
+      if (typeof window !== 'undefined') {
+        const storedOrders = JSON.parse(localStorage.getItem('custom_twap_orders') || '[]');
+        console.log(`🔍 Verification: ${storedOrders.length} TWAP orders now in localStorage`);
+      }
       return limitOrder;
     } catch (error) {
       console.error('Error executing TWAP order:', error);

@@ -60,11 +60,6 @@ const data = {
       icon: FileText,
     },
     {
-      title: "Analytics",
-      url: "/analytics",
-      icon: TrendingUp,
-    },
-    {
       title: "Charts",
       url: "/charts",
       icon: LineChart,

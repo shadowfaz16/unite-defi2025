@@ -159,41 +159,51 @@ export function useRealTimePrices(tokenPairs: Array<{ chainId: number; address: 
   });
 }
 
-// Hook for portfolio analytics
+// Hook for portfolio analytics using Portfolio API
 export function usePortfolioAnalytics(chainId: number, address: string | undefined) {
   const { data: balances } = useWalletBalances(chainId, address);
-  const { data: history } = usePortfolioHistory(chainId, address, '7d');
+  const { data: portfolioValue } = usePortfolioValue(address, [chainId]);
 
   return useQuery({
-    queryKey: ['portfolioAnalytics', chainId, address, balances, history],
+    queryKey: ['portfolioAnalytics', chainId, address, balances, portfolioValue],
     queryFn: async () => {
-      if (!balances?.success || !history?.success) {
-        return null;
-      }
+      if (!address) return null;
 
-      const totalValue = balances.data.reduce((sum, balance) => sum + balance.balanceUSD, 0);
+      // Use Portfolio API data for accurate totals
+      const totalValue = portfolioValue?.data?.total || 0;
       
-      // Calculate 24h, 7d changes (mock calculation for demo)
-      const pnl24h = totalValue * 0.02; // 2% gain
+      // Calculate 24h, 7d changes (using mock calculation for demo)
+      const pnl24h = totalValue * 0.02; // 2% gain - in production you'd use historical data
       const pnl7d = totalValue * 0.05; // 5% gain
       const pnl30d = totalValue * 0.12; // 12% gain
 
       return {
         totalValueUSD: totalValue,
-        balances: balances.data,
+        balances: balances?.data || [],
         pnl24h,
         pnl7d,
         pnl30d,
-        topPerformingAsset: balances.data[0]?.token.symbol || 'N/A',
-        diversificationScore: Math.min(balances.data.length * 20, 100) // Mock score
+        topPerformingAsset: balances?.data?.[0]?.token.symbol || 'N/A',
+        diversificationScore: Math.min((balances?.data?.length || 0) * 20, 100) // Mock score
       };
     },
-    enabled: !!balances?.success && !!history?.success,
+    enabled: !!address,
     staleTime: 30000,
   });
 }
 
-// Hook for cross-chain data aggregation
+// Hook for portfolio value using Portfolio API
+export function usePortfolioValue(address: string | undefined, chainIds: number[] = [1]) {
+  return useQuery({
+    queryKey: ['portfolioValue', address, chainIds],
+    queryFn: () => OneInchAPI.getPortfolioValue(address!, chainIds),
+    enabled: !!address,
+    refetchInterval: 30000,
+    staleTime: 20000,
+  });
+}
+
+// Hook for cross-chain data aggregation using Portfolio API
 export function useCrossChainPortfolio(
   address: string | undefined,
   chains: number[] = [1, 137, 56, 43114] // Ethereum, Polygon, BSC, Avalanche
@@ -203,32 +213,53 @@ export function useCrossChainPortfolio(
     queryFn: async () => {
       if (!address) return null;
 
-      const chainPromises = chains.map(chainId =>
+      // Fetch portfolio values for each chain using Portfolio API
+      const portfolioPromises = chains.map(chainId =>
+        OneInchAPI.getPortfolioValue(address, [chainId])
+      );
+      
+      // Also fetch individual token data for display
+      const balancePromises = chains.map(chainId =>
         OneInchAPI.getWalletBalances(chainId, address)
       );
       
-      const results = await Promise.all(chainPromises);
+      const [portfolioResults, balanceResults] = await Promise.all([
+        Promise.all(portfolioPromises),
+        Promise.all(balancePromises)
+      ]);
       
       let totalValueUSD = 0;
       const balancesByChain: Record<number, TokenBalance[]> = {};
+      const valuesByChain: Record<number, number> = {};
       
-      results.forEach((result, index) => {
+      portfolioResults.forEach((result, index) => {
+        const chainId = chains[index];
+        if (result.success && result.data) {
+          const chainValue = result.data.total || 0;
+          valuesByChain[chainId] = chainValue;
+          totalValueUSD += chainValue;
+        }
+      });
+
+      balanceResults.forEach((result, index) => {
         const chainId = chains[index];
         if (result.success) {
           balancesByChain[chainId] = result.data;
-          totalValueUSD += result.data.reduce((sum, balance) => sum + balance.balanceUSD, 0);
         }
       });
+
+      // Filter out chains with no value
+      const activeChains = Object.entries(valuesByChain)
+        .filter(([_, value]) => value > 0)
+        .map(([chainId, _]) => parseInt(chainId));
 
       return {
         totalValueUSD,
         balancesByChain,
-        chainCount: Object.keys(balancesByChain).length,
-        topChainByValue: Object.entries(balancesByChain)
-          .sort(([,a], [,b]) => 
-            b.reduce((sum, balance) => sum + balance.balanceUSD, 0) - 
-            a.reduce((sum, balance) => sum + balance.balanceUSD, 0)
-          )[0]?.[0] || '1'
+        valuesByChain,
+        chainCount: activeChains.length,
+        topChainByValue: Object.entries(valuesByChain)
+          .sort(([,a], [,b]) => b - a)[0]?.[0] || '1'
       };
     },
     enabled: !!address,

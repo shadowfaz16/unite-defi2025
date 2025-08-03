@@ -150,36 +150,6 @@ export function TokenSelector({
     <div className="space-y-2">
       <label className="block text-sm font-medium">{label}</label>
       
-      {/* Quick Pair Selection for USDT pairs */}
-      {showUSDTFirst && !selectedToken && (
-        <div className="mb-4">
-          <p className="text-xs text-gray-500 mb-2">Popular pairs against USDT:</p>
-          <div className="flex flex-wrap gap-2">
-            {POPULAR_PAIRS.slice(0, 6).map((pair) => {
-              const baseToken = getTokenBySymbol(pair.base);
-              if (!baseToken || excludeTokens.includes(baseToken.address)) return null;
-              
-              return (
-                <Button
-                  key={pair.label}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleTokenSelect(baseToken)}
-                  className="text-xs h-8 px-3 hover:bg-green-50 dark:hover:bg-green-900/20 border-green-200 dark:border-green-800"
-                  disabled={disabled}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span className="font-medium">{pair.label}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {pair.volume}
-                    </Badge>
-                  </div>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Current Selection Button */}
       <Button

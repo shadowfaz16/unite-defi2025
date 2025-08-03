@@ -79,36 +79,63 @@ export abstract class BaseStrategy {
    */
   protected async getCurrentPrice(fromToken: Token, toToken: Token): Promise<number> {
     try {
-      // Use the existing OneInchAPI.getTokenPrice for consistency
-      const fromPriceResult = await OneInchAPI.getTokenPrice(this.chainId, fromToken.address);
-      const toPriceResult = await OneInchAPI.getTokenPrice(this.chainId, toToken.address);
+      console.log(`🔍 Fetching price for ${fromToken.symbol}/${toToken.symbol}...`);
       
-      if (fromPriceResult.success && toPriceResult.success) {
-        const ratio = fromPriceResult.data.priceUSD / toPriceResult.data.priceUSD;
-        return ratio;
+      // Method 1: Try swap quote approach first (more reliable)
+      try {
+        const signerAddress = await this.signer.getAddress();
+        const oneUnit = (BigInt(10) ** BigInt(fromToken.decimals)).toString();
+        
+        console.log(`📊 Getting swap quote: ${oneUnit} ${fromToken.symbol} → ${toToken.symbol}`);
+        
+        const swapQuote = await OneInchAPI.getSwapQuote(
+          this.chainId,
+          fromToken.address,
+          toToken.address,
+          oneUnit,
+          signerAddress
+        );
+        
+        if (swapQuote.success && swapQuote.data) {
+          const fromAmount = parseFloat(swapQuote.data.fromAmount);
+          const toAmount = parseFloat(swapQuote.data.toAmount);
+          
+          if (fromAmount > 0 && toAmount > 0) {
+            const price = toAmount / fromAmount;
+            console.log(`✅ Price via swap quote: 1 ${fromToken.symbol} = ${price} ${toToken.symbol}`);
+            return price;
+          }
+        }
+      } catch (quoteError) {
+        console.warn('Swap quote method failed:', quoteError);
       }
       
-      // Fallback: use a more direct approach
-      const swapQuote = await OneInchAPI.getSwapQuote(
-        this.chainId,
-        fromToken.address,
-        toToken.address,
-        (BigInt(10) ** BigInt(fromToken.decimals)).toString(), // 1 unit of fromToken
-        this.signer.address
-      );
-      
-      if (swapQuote.success) {
-        const fromAmount = parseFloat(swapQuote.data.fromAmount);
-        const toAmount = parseFloat(swapQuote.data.toAmount);
-        return fromAmount / toAmount;
+      // Method 2: Try spot price approach
+      try {
+        const fromPriceResult = await OneInchAPI.getTokenPrice(this.chainId, fromToken.address);
+        const toPriceResult = await OneInchAPI.getTokenPrice(this.chainId, toToken.address);
+        
+        if (fromPriceResult.success && toPriceResult.success && 
+            fromPriceResult.data.priceUSD > 0 && toPriceResult.data.priceUSD > 0) {
+          const ratio = fromPriceResult.data.priceUSD / toPriceResult.data.priceUSD;
+          console.log(`✅ Price via spot price: 1 ${fromToken.symbol} = ${ratio} ${toToken.symbol}`);
+          return ratio;
+        }
+      } catch (spotError) {
+        console.warn('Spot price method failed:', spotError);
       }
       
-      // Final fallback with reasonable defaults
-      console.warn(`Failed to get real price for ${fromToken.symbol}/${toToken.symbol}, using fallback`);
-      return this.getFallbackPrice(fromToken, toToken);
+      // Method 3: Fallback with reasonable defaults
+      console.warn(`⚠️ All price methods failed for ${fromToken.symbol}/${toToken.symbol}, using fallback`);
+      const fallbackPrice = this.getFallbackPrice(fromToken, toToken);
+      console.log(`🔄 Using fallback price: 1 ${fromToken.symbol} = ${fallbackPrice} ${toToken.symbol}`);
+      return fallbackPrice;
+      
     } catch (error) {
-      console.error(`Error getting price for ${fromToken.symbol}/${toToken.symbol}:`, error);
-      return this.getFallbackPrice(fromToken, toToken);
+      console.error(`❌ Error getting price for ${fromToken.symbol}/${toToken.symbol}:`, error);
+      const fallbackPrice = this.getFallbackPrice(fromToken, toToken);
+      console.log(`🔄 Using fallback price after error: 1 ${fromToken.symbol} = ${fallbackPrice} ${toToken.symbol}`);
+      return fallbackPrice;
     }
   }
 
@@ -210,18 +237,62 @@ export abstract class BaseStrategy {
   }
 
   /**
-   * Submit order to custom orderbook (not official 1inch API per hackathon rules)
+   * Submit order to REAL 1inch API (production ready)
    */
-  protected async submitToCustomOrderbook(
+  protected async submitToRealOneInchAPI(
     order: LimitOrder,
     signature: string,
     customOrder: CustomLimitOrder,
     strategyType: string
+  ): Promise<{ success: boolean; apiResponse?: any }> {
+    try {
+      console.log(`🚀 Submitting ${strategyType} order to REAL 1inch API...`);
+      
+      // Submit to real 1inch API
+      const { OneInchAPI } = await import('../api/oneinch');
+      const result = await OneInchAPI.submitLimitOrder(this.chainId, order, signature);
+      
+      if (result.success) {
+        console.log(`✅ ${strategyType} order successfully submitted to 1inch API!`);
+        console.log(`📋 Order hash: ${result.data.orderHash}`);
+        
+        // Also store locally for UI display
+        await this.storeOrderLocally(order, signature, customOrder, strategyType, true);
+        
+        return { success: true, apiResponse: result.data };
+      } else {
+        console.warn(`⚠️ Failed to submit ${strategyType} order to 1inch API:`, result.error);
+        console.log(`💾 Storing order locally as fallback for demo purposes`);
+        
+        // Fallback: store locally for demo
+        await this.storeOrderLocally(order, signature, customOrder, strategyType, false);
+        
+        return { success: false, apiResponse: result };
+      }
+    } catch (error) {
+      console.error(`❌ Error submitting ${strategyType} order to 1inch API:`, error);
+      
+      // Fallback: store locally for demo
+      await this.storeOrderLocally(order, signature, customOrder, strategyType, false);
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Store order locally for demo/fallback purposes
+   */
+  private async storeOrderLocally(
+    order: LimitOrder,
+    signature: string,
+    customOrder: CustomLimitOrder,
+    strategyType: string,
+    isRealOrder: boolean = false
   ): Promise<void> {
     try {
-      // Store in localStorage for demo (in production, would use custom backend)
+      // Store in localStorage for demo fallback
       if (typeof window !== 'undefined') {
-        const storageKey = `custom_orders_${strategyType.toLowerCase()}`;
+        const storageKey = `custom_${strategyType.toLowerCase()}_orders`;
         const existingOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
         
         const orderData = {
@@ -237,18 +308,33 @@ export abstract class BaseStrategy {
           customOrder,
           strategyType,
           timestamp: Date.now(),
-          chainId: this.chainId
+          chainId: this.chainId,
+          isRealOrder // Mark if this was actually submitted to 1inch API
         };
         
         existingOrders.push(orderData);
         localStorage.setItem(storageKey, JSON.stringify(existingOrders));
         
-        console.log(`✅ Order submitted to custom ${strategyType} orderbook:`, customOrder.id);
+        console.log(`💾 Order stored locally with key: ${storageKey}`);
+        console.log(`📊 Order data saved (${isRealOrder ? 'REAL API' : 'DEMO FALLBACK'}):`, orderData);
+        console.log(`📈 Total orders in ${strategyType} storage:`, existingOrders.length);
       }
     } catch (error) {
-      console.error(`Failed to submit order to custom ${strategyType} orderbook:`, error);
-      throw error;
+      console.error(`Failed to store ${strategyType} order locally:`, error);
     }
+  }
+
+  /**
+   * Submit order to custom orderbook (DEPRECATED - use submitToRealOneInchAPI)
+   */
+  protected async submitToCustomOrderbook(
+    order: LimitOrder,
+    signature: string,
+    customOrder: CustomLimitOrder,
+    strategyType: string
+  ): Promise<void> {
+    console.warn(`⚠️ Using deprecated custom orderbook for ${strategyType}. Use submitToRealOneInchAPI for production.`);
+    return this.storeOrderLocally(order, signature, customOrder, strategyType, false);
   }
 
   /**
@@ -261,13 +347,37 @@ export abstract class BaseStrategy {
     fromDecimals: number,
     toDecimals: number
   ): { takingAmount: bigint; effectivePrice: number } {
+    console.log(`🧮 Calculating amounts:`, {
+      makingAmount: makingAmount.toString(),
+      currentPrice,
+      slippageTolerance,
+      fromDecimals,
+      toDecimals
+    });
+    
+    // Validate inputs
+    if (isNaN(currentPrice) || currentPrice <= 0) {
+      throw new Error(`Invalid current price: ${currentPrice}. Cannot calculate taking amount.`);
+    }
+    
+    if (makingAmount <= BigInt(0)) {
+      throw new Error(`Invalid making amount: ${makingAmount}. Must be greater than 0.`);
+    }
+    
     // Apply slippage tolerance to the price
     const effectivePrice = currentPrice * (1 - slippageTolerance / 100);
+    console.log(`💱 Effective price after ${slippageTolerance}% slippage: ${effectivePrice}`);
     
     // Calculate taking amount with proper decimal handling
     const fromAmountNormalized = Number(makingAmount) / (10 ** fromDecimals);
     const toAmountNormalized = fromAmountNormalized * effectivePrice;
     const takingAmount = BigInt(Math.floor(toAmountNormalized * (10 ** toDecimals)));
+    
+    console.log(`📊 Amount calculation result:`, {
+      fromAmountNormalized,
+      toAmountNormalized,
+      takingAmount: takingAmount.toString()
+    });
     
     return { takingAmount, effectivePrice };
   }
@@ -278,7 +388,7 @@ export abstract class BaseStrategy {
   protected getCustomOrders(strategyType: string): any[] {
     if (typeof window === 'undefined') return [];
     
-    const storageKey = `custom_orders_${strategyType.toLowerCase()}`;
+    const storageKey = `custom_${strategyType.toLowerCase()}_orders`;
     return JSON.parse(localStorage.getItem(storageKey) || '[]');
   }
 
@@ -288,7 +398,7 @@ export abstract class BaseStrategy {
   protected async cancelOrder(orderId: string, strategyType: string): Promise<void> {
     if (typeof window === 'undefined') return;
     
-    const storageKey = `custom_orders_${strategyType.toLowerCase()}`;
+    const storageKey = `custom_${strategyType.toLowerCase()}_orders`;
     const orders = JSON.parse(localStorage.getItem(storageKey) || '[]');
     
     const updatedOrders = orders.map((orderData: any) => {

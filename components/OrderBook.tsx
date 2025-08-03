@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { useTradingStore } from '../lib/stores/tradingStore';
 import { useUserLimitOrders } from '../lib/hooks/useOneInchAPIs';
 import { useWeb3 } from '../lib/hooks/useWeb3';
 import { LimitOrder, TWAPOrder, DCAOrder, GetLimitOrdersV4Response } from '../lib/types';
@@ -15,7 +14,6 @@ interface CustomOrder extends Partial<LimitOrder & TWAPOrder & DCAOrder> {
 }
 
 export function OrderBook() {
-  const { orders, strategies } = useTradingStore();
   const { address } = useWeb3();
   const [customOrders, setCustomOrders] = useState<CustomOrder[]>([]);
   
@@ -44,6 +42,13 @@ export function OrderBook() {
         ...clOrders.map((o: unknown) => ({ ...o as LimitOrder, type: 'CL' as const }))
       ];
       
+      console.log('OrderBook: Loaded orders from localStorage:');
+      console.log('  - TWAP orders:', twapOrders.length);
+      console.log('  - DCA orders:', dcaOrders.length);
+      console.log('  - Options orders:', optionsOrders.length);
+      console.log('  - CL orders:', clOrders.length);
+      console.log('  - Total custom orders:', allOrders.length);
+      
       setCustomOrders(allOrders);
     };
 
@@ -51,6 +56,11 @@ export function OrderBook() {
     
     // Set up interval to refresh orders
     const interval = setInterval(loadCustomOrders, 5000);
+    
+    // Add debugging
+    console.log('OrderBook: Loading custom orders...');
+    console.log('OrderBook: Current custom orders:', customOrders.length);
+    
     return () => clearInterval(interval);
   }, []);
 
