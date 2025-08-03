@@ -157,39 +157,86 @@ export class OneInchAPI {
       console.log('API Key available:', !!ONEINCH_API_KEY);
       console.log('API Base URL:', ONEINCH_API_BASE);
       
-      // Use the same proxy approach as other APIs
-      const url = `${ONEINCH_API_BASE}/swap/v6.1/${chainId}/quote`;
-      const config = {
+      // Build query URL like in the example
+      const baseUrl = `${ONEINCH_API_BASE}/swap/v6.1/${chainId}`;
+      const params = {
+        src: fromTokenAddress,
+        dst: toTokenAddress,
+        amount: amount,
+        from: fromAddress,
+        slippage: '1',
+        disableEstimate: 'false',
+        allowPartialFill: 'false'
+      };
+      
+      const url = new URL(baseUrl + '/quote');
+      url.search = new URLSearchParams(params).toString();
+      
+      console.log('Making request to:', url.toString());
+      console.log('API Key (first 10 chars):', ONEINCH_API_KEY.substring(0, 10) + '...');
+      
+      const response = await fetch(url.toString(), {
+        method: 'GET',
         headers: {
+          Accept: 'application/json',
           Authorization: `Bearer ${ONEINCH_API_KEY}`,
         },
-        params: {
-          src: fromTokenAddress,
-          dst: toTokenAddress,
-          amount: amount,
-          from: fromAddress,
-          slippage: '1', // 1% slippage
-          disableEstimate: 'false'
-        },
-        paramsSerializer: {
-          indexes: null,
-        },
-      };
+      });
 
-      console.log('Making request to:', url);
-      console.log('Request config:', { ...config, headers: { ...config.headers, Authorization: '[REDACTED]' } });
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const body = await response.text();
+        console.error('API Error Response:', body);
+        throw new Error(`1inch API returned status ${response.status}: ${body}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Swap quote response received:', data);
       
-      const response = await axios.get(url, config);
-      
-      console.log('✅ Swap quote response received:', response.data);
+      // Check if we got a valid response with the expected fields
+      if (!data.toAmount && !data.dstAmount && !data.outAmount) {
+        console.warn('⚠️ API response missing expected amount fields, trying alternative endpoint...');
+        
+        // Try alternative endpoint structure
+        const altUrl = new URL(`${ONEINCH_API_BASE}/swap/v6.0/${chainId}/quote`);
+        altUrl.search = new URLSearchParams(params).toString();
+        
+        console.log('Trying alternative endpoint:', altUrl.toString());
+        
+        const altResponse = await fetch(altUrl.toString(), {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${ONEINCH_API_KEY}`,
+          },
+        });
+        
+        if (altResponse.ok) {
+          const altData = await altResponse.json();
+          console.log('✅ Alternative API response:', altData);
+          
+          const quote: SwapQuote = {
+            fromToken: altData.fromToken || data.fromToken,
+            toToken: altData.toToken || data.toToken,
+            fromAmount: altData.fromAmount || data.fromAmount,
+            toAmount: altData.toAmount || altData.dstAmount || altData.outAmount || '0',
+            estimatedGas: altData.estimatedGas || data.estimatedGas,
+            protocols: altData.protocols || data.protocols
+          };
+          
+          return { success: true, data: quote };
+        }
+      }
       
       const quote: SwapQuote = {
-        fromToken: response.data.fromToken,
-        toToken: response.data.toToken,
-        fromAmount: response.data.fromAmount,
-        toAmount: response.data.toAmount,
-        estimatedGas: response.data.estimatedGas,
-        protocols: response.data.protocols
+        fromToken: data.fromToken,
+        toToken: data.toToken,
+        fromAmount: data.fromAmount,
+        toAmount: data.toAmount || data.dstAmount || data.outAmount || '0',
+        estimatedGas: data.estimatedGas,
+        protocols: data.protocols
       };
 
       return { success: true, data: quote };

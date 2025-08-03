@@ -23,7 +23,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <WalletReconnector />
         {children}
-        <Toaster position="top-right" richColors />
+        <Toaster 
+          position="top-right" 
+          richColors 
+          duration={5000}
+          closeButton={true}
+        />
       </QueryClientProvider>
     </WagmiProvider>
   );

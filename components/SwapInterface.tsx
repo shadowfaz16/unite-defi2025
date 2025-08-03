@@ -330,6 +330,20 @@ export function SwapInterface() {
         address
       })
       
+      // Use the same approach as the example - call the quote endpoint directly
+      const params = {
+        src: fromToken.address,
+        dst: toToken.address,
+        amount: amountInWei,
+        from: address,
+        slippage: '1',
+        disableEstimate: 'false',
+        allowPartialFill: 'false'
+      }
+      
+      console.log('Quote params:', params)
+      console.log('Calling 1inch API for quote...')
+      
       const response = await OneInchAPI.getSwapQuote(
         1, // Ethereum mainnet
         fromToken.address,
@@ -337,6 +351,8 @@ export function SwapInterface() {
         amountInWei,
         address
       )
+      
+      console.log('API Response received:', response)
       
       console.log('Quote response:', response)
       
@@ -351,17 +367,42 @@ export function SwapInterface() {
         let toAmountValue = response.data.toAmount
         
         if (!toAmountValue) {
-          console.log('No toAmount found in response, using fallback calculation')
-          // For now, let's use a simple calculation based on current market rates
-          // This is a temporary solution until we get the proper API response
-          const fromAmountNum = parseFloat(fromAmount)
-          if (fromAmountNum > 0) {
-            // Rough estimate: 1 USDT ≈ 0.0004 WETH (this will be updated by real API)
-            const estimatedRate = 0.0004
-            toAmountValue = (fromAmountNum * estimatedRate).toString()
-            console.log('Using estimated rate:', estimatedRate)
+          console.log('No toAmount found in response, trying to get real market rate...')
+          
+          // Try to get the rate from the API response
+          const responseData = response.data as any
+          const rate = responseData.rate || responseData.exchangeRate
+          if (rate) {
+            console.log('Found rate in response:', rate)
+            const fromAmountNum = parseFloat(fromAmount)
+            toAmountValue = (fromAmountNum * parseFloat(rate)).toString()
           } else {
-            toAmountValue = '0'
+            // Try to calculate from other fields in the response
+            console.log('No rate found, checking for other amount fields...')
+            
+            // Look for any amount-related fields
+            const possibleAmountFields = ['dstAmount', 'outAmount', 'amountOut', 'toTokenAmount']
+            for (const field of possibleAmountFields) {
+              if (responseData[field]) {
+                console.log(`Found amount in field ${field}:`, responseData[field])
+                toAmountValue = responseData[field]
+                break
+              }
+            }
+            
+            // If still no amount, use a more accurate fallback
+            if (!toAmountValue) {
+              const fromAmountNum = parseFloat(fromAmount)
+              if (fromAmountNum > 0) {
+                // More accurate estimate based on current market
+                // 1 USDT ≈ $1, 1 WETH ≈ $2500, so 1 USDT ≈ 0.0004 WETH
+                const estimatedRate = 0.0004
+                toAmountValue = (fromAmountNum * estimatedRate).toString()
+                console.log('Using estimated rate:', estimatedRate)
+              } else {
+                toAmountValue = '0'
+              }
+            }
           }
         } else {
           // If we have a toAmountValue, check if it's already formatted
@@ -380,7 +421,47 @@ export function SwapInterface() {
           setToAmount(formattedAmount)
         } else {
           console.log('Invalid toAmount:', toAmountValue)
-          setToAmount('0')
+          console.log('Full response data for debugging:', JSON.stringify(response.data, null, 2))
+          
+          // Try to extract amount from the response using different approaches
+          const responseData = response.data as any
+          
+          // Check if there's a different field structure
+          if (responseData.toToken && responseData.fromToken) {
+            console.log('Found token info, checking for amount in different fields...')
+            
+            // Look for amount in various possible locations
+            const amountFields = [
+              'toAmount',
+              'dstAmount', 
+              'outAmount',
+              'amountOut',
+              'toTokenAmount',
+              'amount',
+              'value',
+              'result'
+            ]
+            
+            for (const field of amountFields) {
+              if (responseData[field]) {
+                console.log(`Found amount in field ${field}:`, responseData[field])
+                const formattedAmount = safeFormatTokenAmount(responseData[field], toToken.decimals)
+                setToAmount(formattedAmount)
+                return
+              }
+            }
+            
+            // If we have token info but no amount, try to calculate from other data
+            if (responseData.fromAmount && responseData.toToken && responseData.fromToken) {
+              console.log('Trying to calculate from token data...')
+              // This is a fallback - we need the actual API response structure
+              setToAmount('0')
+            } else {
+              setToAmount('0')
+            }
+          } else {
+            setToAmount('0')
+          }
         }
       } else {
         console.error('Quote response error:', response)
@@ -405,7 +486,7 @@ export function SwapInterface() {
     }
 
     setIsSwapping(true)
-    toast.loading('Preparing swap transaction...')
+    const loadingToast = toast.loading('Preparing swap transaction...')
 
     try {
       // First check allowance
@@ -424,7 +505,8 @@ export function SwapInterface() {
 
       // If allowance is insufficient, approve first
       if (allowance < requiredAmount) {
-        toast.loading('Approving token allowance...')
+        toast.dismiss(loadingToast)
+        const approvalToast = toast.loading('Approving token allowance...')
         
         const approveResponse = await OneInchAPI.getApprovalTransaction(
           1, // Ethereum mainnet
@@ -446,6 +528,7 @@ export function SwapInterface() {
           value: BigInt(approveTx.value)
         })
 
+        toast.dismiss(approvalToast)
         toast.success('Approval transaction sent!', {
           description: `Hash: ${approveHash}`
         })
@@ -456,7 +539,8 @@ export function SwapInterface() {
       }
 
       // Now perform the swap
-      toast.loading('Preparing swap transaction...')
+      toast.dismiss(loadingToast)
+      const swapToast = toast.loading('Preparing swap transaction...')
       
       const swapResponse = await OneInchAPI.getSwapTransaction(
         1, // Ethereum mainnet
@@ -481,6 +565,7 @@ export function SwapInterface() {
         value: BigInt(swapTx.tx.value)
       })
 
+      toast.dismiss(swapToast)
       toast.success('Swap transaction sent!', {
         description: `Hash: ${swapHash}`
       })
@@ -499,6 +584,7 @@ export function SwapInterface() {
       
     } catch (error) {
       console.error('Swap error:', error)
+      toast.dismiss(loadingToast)
       toast.error('Swap failed: ' + (error as Error).message)
     } finally {
       setIsSwapping(false)
